@@ -13,10 +13,14 @@ class ClientFormScreen extends StatefulWidget {
 class _ClientFormScreenState extends State<ClientFormScreen> {
   final _formKey = GlobalKey<FormState>();
 
-  final _nameController = TextEditingController();
-  final _specializationController = TextEditingController();
+  // Database field controllers
+  final _customerCodeController = TextEditingController();
+  final _customerNameController = TextEditingController();
   final _contactController = TextEditingController();
-  final _addressController = TextEditingController();
+  final _customerAddressController = TextEditingController();
+  final _dealerTypeController = TextEditingController();
+  final _specializationController = TextEditingController();
+  final _gstNumberController = TextEditingController();
 
   bool _isSubmitting = false;
 
@@ -25,63 +29,61 @@ class _ClientFormScreenState extends State<ClientFormScreen> {
     super.initState();
     final client = widget.client;
     if (client != null) {
-      _nameController.text = client['name']?.toString() ?? '';
-      _specializationController.text =
-          client['specialization']?.toString() ?? '';
+      _customerCodeController.text = client['customerCode']?.toString() ?? '';
+      _customerNameController.text = client['customerName']?.toString() ?? '';
       _contactController.text = client['contact']?.toString() ?? '';
-      _addressController.text = client['address']?.toString() ?? '';
+      _customerAddressController.text = client['customerAddress']?.toString() ?? '';
+      _dealerTypeController.text = client['dealerType']?.toString() ?? '';
+      _specializationController.text = client['specialization']?.toString() ?? '';
+      _gstNumberController.text = client['gstNumber']?.toString() ?? '';
     }
   }
 
   @override
   void dispose() {
-    _nameController.dispose();
-    _specializationController.dispose();
+    _customerCodeController.dispose();
+    _customerNameController.dispose();
     _contactController.dispose();
-    _addressController.dispose();
+    _customerAddressController.dispose();
+    _dealerTypeController.dispose();
+    _specializationController.dispose();
+    _gstNumberController.dispose();
     super.dispose();
   }
 
   Future<void> _submit() async {
-    if (!_formKey.currentState!.validate()) {
-      return;
+  if (!_formKey.currentState!.validate()) return;
+
+  setState(() => _isSubmitting = true);
+
+  try {
+    // ⭐ MAP FORM FIELDS → BACKEND FIELDS
+    final body = {
+      "name": _customerNameController.text.trim(),
+      "specialization": _specializationController.text.trim(),
+      "contact": _contactController.text.trim(),
+      "address": _customerAddressController.text.trim(),
+    };
+
+    if (widget.client == null) {
+      // CREATE
+      await ApiClient.post('/clients', body);
+    } else {
+      // UPDATE
+      final id = widget.client!['_id'].toString();
+      await ApiClient.put('/clients/$id', body);
     }
 
-    setState(() {
-      _isSubmitting = true;
-    });
-
-    try {
-      final body = {
-        'name': _nameController.text.trim(),
-        'specialization': _specializationController.text.trim(),
-        'contact': _contactController.text.trim(),
-        'address': _addressController.text.trim(),
-      };
-
-      if (widget.client == null) {
-        await ApiClient.post('/clients', body);
-      } else {
-        final id =
-            widget.client!['_id']?.toString() ?? widget.client!['id'].toString();
-        await ApiClient.put('/clients/$id', body);
-      }
-
-      if (!mounted) return;
-      Navigator.of(context).pop(true);
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString())),
-      );
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isSubmitting = false;
-        });
-      }
-    }
+    if (!mounted) return;
+    Navigator.of(context).pop(true);
+  } catch (e) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(e.toString())));
+  } finally {
+    if (mounted) setState(() => _isSubmitting = false);
   }
+}
 
   @override
   Widget build(BuildContext context) {
@@ -98,12 +100,26 @@ class _ClientFormScreenState extends State<ClientFormScreen> {
           child: SingleChildScrollView(
             child: Column(
               children: [
+                // Customer Code
                 TextFormField(
-                  controller: _nameController,
-                  decoration: const InputDecoration(labelText: 'Name'),
+                  controller: _customerCodeController,
+                  decoration: const InputDecoration(labelText: 'Customer Code'),
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) {
-                      return 'Name is required';
+                      return 'Customer Code is required';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 12),
+                
+                // Customer Name
+                TextFormField(
+                  controller: _customerNameController,
+                  decoration: const InputDecoration(labelText: 'Customer Name'),
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Customer Name is required';
                     }
                     if (value.trim().length < 2) {
                       return 'Minimum 2 characters required';
@@ -112,25 +128,18 @@ class _ClientFormScreenState extends State<ClientFormScreen> {
                   },
                 ),
                 const SizedBox(height: 12),
-                TextFormField(
-                  controller: _specializationController,
-                  decoration: const InputDecoration(
-                      labelText: 'Specialisation / Clinic Type'),
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return 'Specialization is required';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 12),
+                
+                // Contact
                 TextFormField(
                   controller: _contactController,
-                  decoration: const InputDecoration(labelText: 'Contact'),
+                  decoration: const InputDecoration(labelText: 'Contact Number'),
+                  keyboardType: TextInputType.phone,
                 ),
                 const SizedBox(height: 12),
+                
+                // Customer Address
                 TextFormField(
-                  controller: _addressController,
+                  controller: _customerAddressController,
                   decoration: const InputDecoration(labelText: 'Address'),
                   maxLines: 3,
                   validator: (value) {
@@ -140,7 +149,59 @@ class _ClientFormScreenState extends State<ClientFormScreen> {
                     return null;
                   },
                 ),
+                const SizedBox(height: 12),
+                
+                // Dealer Type
+                DropdownButtonFormField<String>(
+                  value: _dealerTypeController.text.trim().isEmpty 
+                      ? null 
+                      : _dealerTypeController.text.trim(),
+                  decoration: const InputDecoration(labelText: 'Dealer Type'),
+                  items: const [
+                    DropdownMenuItem(value: 'GST', child: Text('GST')),
+                    DropdownMenuItem(value: 'Non GST', child: Text('Non GST')),
+                  ],
+                  onChanged: (value) {
+                    _dealerTypeController.text = value ?? '';
+                  },
+                  validator: (value) {
+                    if (value == null || value!.trim().isEmpty) {
+                      return 'Dealer Type is required';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 12),
+                
+                // Specialization
+                TextFormField(
+                  controller: _specializationController,
+                  decoration: const InputDecoration(
+                      labelText: 'Specialization / Clinic Type'),
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Specialization is required';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 12),
+                
+                // GST Number
+                TextFormField(
+                  controller: _gstNumberController,
+                  decoration: const InputDecoration(labelText: 'GST Number'),
+                  validator: (value) {
+                    final dealerType = _dealerTypeController.text.trim();
+                    if (dealerType == 'GST' && (value == null || value.trim().isEmpty)) {
+                      return 'GST Number is required for GST dealers';
+                    }
+                    return null;
+                  },
+                ),
                 const SizedBox(height: 24),
+                
+                // Submit Button
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
@@ -148,7 +209,7 @@ class _ClientFormScreenState extends State<ClientFormScreen> {
                     child: Text(
                       _isSubmitting
                           ? 'Saving...'
-                          : (isEdit ? 'Save' : 'Add'),
+                          : (isEdit ? 'Update' : 'Add Client'),
                     ),
                   ),
                 ),

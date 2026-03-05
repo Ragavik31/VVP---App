@@ -9,10 +9,12 @@ class StaffOrderManagementScreen extends StatefulWidget {
   const StaffOrderManagementScreen({super.key});
 
   @override
-  State<StaffOrderManagementScreen> createState() => _StaffOrderManagementScreenState();
+  State<StaffOrderManagementScreen> createState() =>
+      _StaffOrderManagementScreenState();
 }
 
-class _StaffOrderManagementScreenState extends State<StaffOrderManagementScreen> {
+class _StaffOrderManagementScreenState
+    extends State<StaffOrderManagementScreen> {
   bool _isLoading = false;
   List<dynamic> _assignedOrders = [];
 
@@ -20,153 +22,126 @@ class _StaffOrderManagementScreenState extends State<StaffOrderManagementScreen>
   void initState() {
     super.initState();
     _loadAssignedOrders();
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final auth = Provider.of<AuthProvider>(context, listen: false);
       final token = auth.token;
-      final userId = auth.currentUser?.id;
+
       if (token != null) {
         SocketService().connect(token: token);
-        SocketService().on('order:assigned', (data) {
-          try {
-            if (data != null && data['assignedTo'] == userId) {
-              _loadAssignedOrders();
-            }
-          } catch (_) {}
-        });
-
-        SocketService().on('order:accepted', (data) {
-          // reload to reflect accepted/completed status
-          _loadAssignedOrders();
-        });
+        SocketService().on('order:assigned', (_) => _loadAssignedOrders());
+        SocketService().on('order:accepted', (_) => _loadAssignedOrders());
+        SocketService().on('order:status_changed', (_) => _loadAssignedOrders());
       }
     });
   }
 
   Future<void> _loadAssignedOrders() async {
-    setState(() {
-      _isLoading = true;
-    });
+    setState(() => _isLoading = true);
 
     try {
       final data = await ApiClient.get('/orders?status=assigned');
-
-      if (data is Map<String, dynamic>) {
-        final list = data['data'];
-        if (list is List) {
-          setState(() {
-            _assignedOrders = list;
-          });
-        }
-      } else if (data is List) {
-        setState(() {
-          _assignedOrders = data;
-        });
+      if (data['data'] != null) {
+        _assignedOrders = data['data'];
       }
     } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
-      );
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text("Error: $e")));
     }
+
+    setState(() => _isLoading = false);
   }
 
-  Future<void> _acceptOrder(String orderId) async {
-    try {
-      await ApiClient.patch('/orders/$orderId/accept', {});
-
-      await _loadAssignedOrders();
-
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Order accepted successfully')),
-      );
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
-      );
-    }
+  Future<void> _acceptOrder(String id) async {
+    await ApiClient.patch('/orders/$id/accept', {});
+    _loadAssignedOrders();
   }
 
-  Future<void> _completeOrder(String orderId) async {
-    try {
-      await ApiClient.patch('/orders/$orderId/status', {
-        'status': 'completed',
-      });
+  Future<void> _completeOrder(String id) async {
+    await ApiClient.patch('/orders/$id/status', {"status": "completed"});
+    _loadAssignedOrders();
+  }
 
-      await _loadAssignedOrders();
+  void _showOrderDetails(Map order) {
+    final items = order['items'] as List? ?? [];
 
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Order completed successfully')),
-      );
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
-      );
-    }
+    showModalBottomSheet(
+      context: context,
+      builder: (_) => Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text("Order Details",
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+
+            const SizedBox(height: 10),
+            Text("Client: ${order['clientName']}"),
+            Text("Payment: ${order['paymentMethod']}"),
+            Text("Total: ₹${order['totalPrice']}"),
+
+            const SizedBox(height: 15),
+            const Text("Items:",
+                style: TextStyle(fontWeight: FontWeight.bold)),
+
+            ...items.map((item) => Text(
+                "• ${item['productName']}  x${item['quantity']}  = ₹${item['itemTotal']}")),
+
+            const SizedBox(height: 20),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Assigned Orders'),
-      ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _assignedOrders.isEmpty
-              ? const Center(child: Text('No assigned orders'))
-              : RefreshIndicator(
-                  onRefresh: _loadAssignedOrders,
-                  child: ListView.builder(
-                    itemCount: _assignedOrders.length,
-                    itemBuilder: (context, index) {
-                      final order = _assignedOrders[index];
-                      final isAccepted = order['status'] == 'accepted';
+    if (_isLoading) return const Center(child: CircularProgressIndicator());
+    if (_assignedOrders.isEmpty)
+      return const Center(child: Text("No assigned orders"));
 
-                      return Card(
-                        margin: const EdgeInsets.all(8),
-                        child: ListTile(
-                          title: Text('${order['vaccineName']} - ${order['quantity']} units'),
-                          subtitle: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text('Client: ${order['clientName']}'),
-                              Text('Status: ${order['status']}'),
-                              Text('Total: ₹${order['totalPrice']}'),
-                            ],
-                          ),
-                          trailing: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              if (!isAccepted)
-                                ElevatedButton(
-                                  onPressed: () => _acceptOrder(order['_id']),
-                                  child: const Text('Accept'),
-                                )
-                              else
-                                ElevatedButton(
-                                  onPressed: () => _completeOrder(order['_id']),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.green,
-                                  ),
-                                  child: const Text('Complete'),
-                                ),
-                            ],
-                          ),
-                        ),
-                      );
-                    },
-                  ),
+    return RefreshIndicator(
+      onRefresh: _loadAssignedOrders,
+      child: ListView.builder(
+        itemCount: _assignedOrders.length,
+        itemBuilder: (_, i) {
+          final order = _assignedOrders[i];
+          final isAccepted = order['status'] == 'accepted';
+          final items = order['items'] as List? ?? [];
+
+          return Card(
+            child: ListTile(
+              onTap: () => _showOrderDetails(order),
+
+              title: Text(
+                "${order['clientName']} • ${items.length} items",
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+
+              subtitle: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text("Payment: ${order['paymentMethod']}"),
+                  Text("Total: ₹${order['totalPrice']}"),
+                  Text("Status: ${order['status']}"),
+                ],
+              ),
+
+              trailing: ElevatedButton(
+                onPressed: () => isAccepted
+                    ? _completeOrder(order['_id'])
+                    : _acceptOrder(order['_id']),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor:
+                      isAccepted ? Colors.green : Colors.black,
                 ),
+                child: Text(isAccepted ? "Complete" : "Accept"),
+              ),
+            ),
+          );
+        },
+      ),
     );
   }
 
@@ -175,6 +150,7 @@ class _StaffOrderManagementScreenState extends State<StaffOrderManagementScreen>
     try {
       SocketService().off('order:assigned');
       SocketService().off('order:accepted');
+      SocketService().off('order:status_changed');
     } catch (_) {}
     super.dispose();
   }

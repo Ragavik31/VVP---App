@@ -1,6 +1,6 @@
 {
-    "name": "stocksync_frontend",
-    "short_name": "stocksync_frontend",
+    "name": "vvp_frontend",
+    "short_name": "vvp_frontend",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

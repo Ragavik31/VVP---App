@@ -1,18 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-
 import '../auth/auth_provider.dart';
 import 'admin_order_management_screen.dart';
+import 'client_form_screen.dart';
 import 'client_list_screen.dart';
 import 'dashboard_screen.dart';
-import 'product_list_screen.dart';
 import 'sales_billing_placeholder_screen.dart';
 import 'staff_order_management_screen.dart';
 import 'vaccine_list_screen.dart';
 
 class HomeShell extends StatefulWidget {
   const HomeShell({super.key});
-
   @override
   State<HomeShell> createState() => _HomeShellState();
 }
@@ -23,148 +21,186 @@ class _HomeShellState extends State<HomeShell> {
   List<Widget> get _pages {
     final auth = Provider.of<AuthProvider>(context, listen: false);
     final isClient = auth.currentUser?.role == 'client';
-    
-    if (isClient) {
-      return const [
-        DashboardScreen(),
-        VaccineListScreen(),
-      ];
-    } else {
-      final isStaff = auth.currentUser?.role == 'staff';
-      if (isStaff) {
-        return const [
-          DashboardScreen(),
-          StaffOrderManagementScreen(),
-          VaccineListScreen(),
-        ];
-      } else {
-        return const [
-          DashboardScreen(),
-          AdminOrderManagementScreen(),
-          ClientListScreen(),
-          VaccineListScreen(),
-          SalesBillingPlaceholderScreen(),
-        ];
-      }
-    }
+    if (isClient) return const [DashboardScreen(), VaccineListScreen()];
+    final isStaff = auth.currentUser?.role == 'staff';
+    if (isStaff) return const [DashboardScreen(), StaffOrderManagementScreen(), VaccineListScreen()];
+    return const [DashboardScreen(), AdminOrderManagementScreen(), ClientListScreen(), VaccineListScreen(), SalesBillingPlaceholderScreen()];
   }
 
   List<String> get _titles {
     final auth = Provider.of<AuthProvider>(context, listen: false);
-    final isClient = auth.currentUser?.role == 'client';
-    
-    if (isClient) {
-      return const [
-        'Dashboard',
-        'Vaccines',
-      ];
-    } else {
-      final isStaff = auth.currentUser?.role == 'staff';
-      if (isStaff) {
-        return const [
-          'Dashboard',
-          'Orders',
-          'Vaccines',
-        ];
-      } else {
-        return const [
-          'Dashboard',
-          'Order Management',
-          'Clients',
-          'Vaccines',
-          'Sales',
-        ];
-      }
-    }
+    if (auth.currentUser?.role == 'client') return ['Dashboard', 'Vaccines'];
+    if (auth.currentUser?.role == 'staff') return ['Dashboard', 'Orders', 'Vaccines'];
+    return ['Dashboard', 'Orders', 'Clients', 'Vaccines', 'Sales'];
   }
 
-  List<BottomNavigationBarItem> get _navItems {
+  List<_NavItem> get _navDefs {
     final auth = Provider.of<AuthProvider>(context, listen: false);
-    final isClient = auth.currentUser?.role == 'client';
-    
-    if (isClient) {
-      return const [
-        BottomNavigationBarItem(
-          icon: Icon(Icons.dashboard),
-          label: 'Dashboard',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.vaccines),
-          label: 'Vaccines',
-        ),
+    if (auth.currentUser?.role == 'client') {
+      return [
+        _NavItem(Icons.dashboard_rounded, Icons.dashboard, 'Dashboard'),
+        _NavItem(Icons.vaccines_rounded, Icons.vaccines, 'Vaccines'),
       ];
-    } else {
-      final isStaff = auth.currentUser?.role == 'staff';
-      if (isStaff) {
-        return const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.dashboard),
-            label: 'Dashboard',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.assignment),
-            label: 'Orders',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.vaccines),
-            label: 'Vaccines',
-          ),
-        ];
-      } else {
-        return const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.dashboard),
-            label: 'Dashboard',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.assignment),
-            label: 'Orders',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.people),
-            label: 'Clients',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.vaccines),
-            label: 'Vaccines',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.receipt_long),
-            label: 'Sales',
-          ),
-        ];
-      }
     }
+    if (auth.currentUser?.role == 'staff') {
+      return [
+        _NavItem(Icons.dashboard_rounded, Icons.dashboard, 'Dashboard'),
+        _NavItem(Icons.assignment_rounded, Icons.assignment, 'Orders'),
+        _NavItem(Icons.vaccines_rounded, Icons.vaccines, 'Vaccines'),
+      ];
+    }
+    return [
+      _NavItem(Icons.dashboard_rounded, Icons.dashboard, 'Dashboard'),
+      _NavItem(Icons.assignment_rounded, Icons.assignment, 'Orders'),
+      _NavItem(Icons.people_alt_rounded, Icons.people, 'Clients'),
+      _NavItem(Icons.vaccines_rounded, Icons.vaccines, 'Vaccines'),
+      _NavItem(Icons.receipt_long_rounded, Icons.receipt_long, 'Sales'),
+    ];
   }
 
   @override
   Widget build(BuildContext context) {
     final auth = Provider.of<AuthProvider>(context, listen: false);
+    final navDefs = _navDefs;
 
     return Scaffold(
+      extendBody: true,
       appBar: AppBar(
-        title: Text(_titles[_currentIndex]),
-        actions: _currentIndex == 0
-            ? [
-                IconButton(
-                  icon: const Icon(Icons.logout),
-                  onPressed: () {
-                    auth.logout();
-                  },
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Color(0xFF4361EE), Color(0xFF3A0CA3)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+        ),
+        title: Row(
+          children: [
+            Container(
+              width: 80,
+              height: 32,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(6),
+              ),
+              padding: const EdgeInsets.all(4),
+              child: Image.asset('assets/logo.png', fit: BoxFit.contain),
+            ),
+            const SizedBox(width: 10),
+            Text(
+              _titles[_currentIndex],
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                color: Colors.white,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          if (_currentIndex == 2 && auth.currentUser?.role == 'admin')
+            IconButton(
+              icon: const Icon(Icons.person_add_alt_1_rounded, color: Colors.white),
+              tooltip: 'Add Client',
+              onPressed: () async {
+                await Navigator.push(context,
+                    MaterialPageRoute(builder: (_) => const ClientFormScreen()));
+              },
+            ),
+          if (_currentIndex == 0)
+            Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: GestureDetector(
+                onTap: () => auth.logout(),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.logout_rounded, color: Colors.white, size: 16),
+                      SizedBox(width: 6),
+                      Text('Logout',
+                          style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600)),
+                    ],
+                  ),
                 ),
-              ]
-            : null,
+              ),
+            ),
+        ],
       ),
-      body: _pages[_currentIndex],
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentIndex,
-        onTap: (index) {
-          setState(() {
-            _currentIndex = index;
-          });
-        },
-        items: _navItems,
+      body: IndexedStack(index: _currentIndex, children: _pages),
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF4361EE).withOpacity(0.12),
+              blurRadius: 24,
+              offset: const Offset(0, -4),
+            ),
+          ],
+        ),
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: List.generate(navDefs.length, (i) {
+                final item = navDefs[i];
+                final selected = i == _currentIndex;
+                return GestureDetector(
+                  onTap: () => setState(() => _currentIndex = i),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: selected
+                          ? const Color(0xFF4361EE).withOpacity(0.12)
+                          : Colors.transparent,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          selected ? item.activeIcon : item.icon,
+                          color: selected ? const Color(0xFF4361EE) : const Color(0xFF6B7A9D),
+                          size: 22,
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          item.label,
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight:
+                                selected ? FontWeight.w700 : FontWeight.w500,
+                            color: selected ? const Color(0xFF4361EE) : const Color(0xFF6B7A9D),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }),
+            ),
+          ),
+        ),
       ),
     );
   }
+}
+
+class _NavItem {
+  final IconData activeIcon;
+  final IconData icon;
+  final String label;
+  const _NavItem(this.activeIcon, this.icon, this.label);
 }

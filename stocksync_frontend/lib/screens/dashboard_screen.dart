@@ -1,13 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-
 import '../api_client.dart';
 import '../auth/auth_provider.dart';
 import '../services/socket_service.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
-
   @override
   State<DashboardScreen> createState() => _DashboardScreenState();
 }
@@ -28,16 +26,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
       final userId = auth.currentUser?.id;
       if (token != null) {
         SocketService().connect(token: token);
-        SocketService().on('vaccine:updated', (data) => _loadDashboardData());
-        SocketService().on('order:created', (data) {
-          // Refresh orders for both admin and client
-          _loadOrders();
-        });
+        SocketService().on('vaccine:updated', (_) => _loadDashboardData());
+        SocketService().on('order:created', (_) => _loadOrders());
         SocketService().on('order:status_changed', (data) {
           try {
-            if (data != null && data['clientId'] == userId) {
-              _loadDashboardData();
-            }
+            if (data != null && data['clientId'] == userId) _loadDashboardData();
           } catch (_) {}
         });
       }
@@ -45,42 +38,24 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Future<void> _loadDashboardData() async {
-    setState(() {
-      _isLoading = true;
-      _error = null;
-    });
-
+    setState(() { _isLoading = true; _error = null; });
     try {
       final vaccinesResponse = await ApiClient.get('/vaccines');
-
       List<dynamic> vaccinesList = [];
       if (vaccinesResponse is Map<String, dynamic>) {
         final data = vaccinesResponse['data'];
-        if (data is List) {
-          vaccinesList = data;
-        }
+        if (data is List) vaccinesList = data;
       } else if (vaccinesResponse is List) {
         vaccinesList = vaccinesResponse;
       }
-
       if (!mounted) return;
-
-      setState(() {
-        _recentVaccines = vaccinesList.take(5).toList();
-      });
-
-      // Load orders as well
+      setState(() => _recentVaccines = vaccinesList.take(5).toList());
       await _loadOrders();
     } catch (e) {
       if (!mounted) return;
-      setState(() {
-        _error = e.toString();
-      });
+      setState(() => _error = e.toString());
     } finally {
-      if (!mounted) return;
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -88,32 +63,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
     try {
       final auth = Provider.of<AuthProvider>(context, listen: false);
       final isAdmin = auth.currentUser?.role == 'admin';
-      
-      late dynamic ordersResponse;
-      if (isAdmin) {
-        ordersResponse = await ApiClient.get('/orders/pending?limit=5');
-      } else {
-        ordersResponse = await ApiClient.get('/orders?limit=5');
-      }
-
+      final resp = await ApiClient.get(isAdmin ? '/orders/pending?limit=5' : '/orders?limit=5');
       List<dynamic> ordersList = [];
-      if (ordersResponse is Map<String, dynamic>) {
-        final data = ordersResponse['data'];
-        if (data is List) {
-          ordersList = data;
-        }
-      } else if (ordersResponse is List) {
-        ordersList = ordersResponse;
-      }
-
+      if (resp is Map<String, dynamic>) {
+        final data = resp['data'];
+        if (data is List) ordersList = data;
+      } else if (resp is List) ordersList = resp;
       if (!mounted) return;
-
-      setState(() {
-        _recentOrders = ordersList;
-      });
+      setState(() => _recentOrders = ordersList);
     } catch (e) {
-      if (!mounted) return;
-      // Silent fail for orders
       debugPrint('Error loading orders: $e');
     }
   }
@@ -126,306 +84,405 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final isClient = user?.role == 'client';
 
     return RefreshIndicator(
+      color: const Color(0xFF4361EE),
       onRefresh: _loadDashboardData,
       child: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Welcome, ${user?.name ?? ''}',
-              style:
-                  const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              isAdmin
-                  ? 'Admin – Stock & Sales overview'
-                  : isClient
-                      ? 'Client – Vaccine overview'
-                      : 'Staff – Read-only overview',
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
-            const SizedBox(height: 16),
-            if (_error != null)
-              Card(
-                color: Theme.of(context).colorScheme.errorContainer,
-                child: Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: Text(
-                    _error!,
-                    style: TextStyle(
-                      color:
-                          Theme.of(context).colorScheme.onErrorContainer,
-                    ),
-                  ),
+            // Header banner
+            Container(
+              width: double.infinity,
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Color(0xFF4361EE), Color(0xFF3A0CA3)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
                 ),
               ),
-            if (_error != null) const SizedBox(height: 16),
-            _buildLatestOrdersCard(context, isAdmin, isClient),
-            const SizedBox(height: 16),
-            // Show recent stock activity only to admins (hide for clients and staff)
-            if (isAdmin) _buildRecentStockActivitySection(context, isAdmin),
+              padding: const EdgeInsets.fromLTRB(20, 24, 20, 40),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      CircleAvatar(
+                        radius: 22,
+                        backgroundColor: Colors.white.withOpacity(0.2),
+                        child: Text(
+                          (user?.name ?? '?')[0].toUpperCase(),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 18,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Hello, ${user?.name ?? ''} 👋',
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.white,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.2),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Text(
+                                isAdmin ? 'Admin' : isClient ? 'Client' : 'Staff',
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  // Stats row
+                  Row(
+                    children: [
+                      _statChip(Icons.inventory_2_rounded,
+                          '${_recentVaccines.length}', 'Products'),
+                      const SizedBox(width: 12),
+                      _statChip(Icons.receipt_long_rounded,
+                          '${_recentOrders.length}', 'Orders'),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+
+            Transform.translate(
+              offset: const Offset(0, -20),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Column(
+                  children: [
+                    if (_error != null)
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        margin: const EdgeInsets.only(bottom: 12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFFE8EC),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.error_outline,
+                                color: Color(0xFFEF233C), size: 18),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(_error!,
+                                  style: const TextStyle(color: Color(0xFFEF233C), fontSize: 13)),
+                            ),
+                          ],
+                        ),
+                      ),
+                    if ((isAdmin || isClient)) _buildOrdersCard(),
+                    const SizedBox(height: 16),
+                    if (isAdmin) _buildStockSection(),
+                    const SizedBox(height: 80),
+                  ],
+                ),
+              ),
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildLatestOrdersCard(BuildContext context, bool isAdmin, bool isClient) {
-    // Hide the orders placeholder for staff users (show only to admin/client)
-    if (!isAdmin && !isClient) return const SizedBox.shrink();
-
-    if (_recentOrders.isEmpty) {
-      return Card(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            children: [
-              Icon(
-                Icons.receipt_long,
-                color: Theme.of(context).colorScheme.primary,
-              ),
-              const SizedBox(width: 12),
-              const Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Latest Orders',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    SizedBox(height: 4),
-                    Text(
-                      'No orders placed yet',
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
+  Widget _statChip(IconData icon, String value, String label) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.15),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.white.withOpacity(0.2)),
         ),
-      );
-    }
+        child: Row(
+          children: [
+            Icon(icon, color: Colors.white, size: 20),
+            const SizedBox(width: 10),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(value,
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 18)),
+                Text(label,
+                    style: TextStyle(
+                        color: Colors.white.withOpacity(0.75), fontSize: 12)),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
-    return Card(
+  Widget _buildOrdersCard() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF4361EE).withOpacity(0.08),
+            blurRadius: 20,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Latest Orders',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 12),
-            ..._recentOrders.map((order) {
-              final orderMap = order as Map<String, dynamic>;
-              final clientName = orderMap['clientName'] ?? 'Unknown';
-              final clientContact = orderMap['clientContact'] ?? '—';
-              final totalPrice = orderMap['totalPrice'] ?? 0;
-              final status = orderMap['status'] ?? 'pending';
-              final createdAt = orderMap['createdAt'];
-              final items = orderMap['items'] as List? ?? [];
-
-              String orderSummary = '';
-              if (items.isNotEmpty) {
-                if (items.length == 1) {
-                  final item = items[0];
-                  orderSummary = '${item['vaccineName']} - ${item['quantity']} units';
-                } else {
-                  final totalQty = items.fold<int>(0, (sum, item) => sum + (item['quantity'] as int));
-                  orderSummary = '${items.length} items - $totalQty units';
-                }
-              } else {
-                orderSummary = 'Order #${orderMap['_id']?.toString().substring(0, 8) ?? 'Unknown'}';
-              }
-
-              String formattedDate = '';
-              if (createdAt != null) {
-                try {
-                  final date = DateTime.parse(createdAt.toString());
-                  formattedDate = '${date.day}-${date.month.toString().padLeft(2, '0')}-${date.year}';
-                } catch (_) {
-                  formattedDate = createdAt.toString();
-                }
-              }
-
-              final statusColor = status == 'completed'
-                  ? Colors.green
-                  : status == 'rejected'
-                      ? Colors.red
-                      : status == 'accepted'
-                          ? Colors.blue
-                          : Colors.orange;
-
-              return Container(
-                margin: const EdgeInsets.symmetric(vertical: 8),
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade50,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.grey.shade300),
+            Row(
+              children: [
+                Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF4361EE), Color(0xFF7B9EFF)],
+                    ),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(Icons.receipt_long_rounded,
+                      color: Colors.white, size: 18),
                 ),
-                child: ListTile(
-                  dense: true,
-                  title: Text(orderSummary),
-                  subtitle: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                const SizedBox(width: 12),
+                const Text('Latest Orders',
+                    style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF0D1B2A))),
+              ],
+            ),
+            const SizedBox(height: 16),
+            if (_recentOrders.isEmpty)
+              Center(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 24),
+                  child: Column(
                     children: [
-                      Text('Client: $clientName'),
-                      Text('Contact: $clientContact'),
-                      Text('Date: $formattedDate'),
+                      Icon(Icons.inbox_rounded,
+                          size: 48, color: Colors.grey.shade300),
+                      const SizedBox(height: 8),
+                      const Text('No orders yet',
+                          style: TextStyle(color: Color(0xFF6B7A9D))),
                     ],
                   ),
-                  trailing: Wrap(
-                    spacing: 8,
+                ),
+              )
+            else
+              ..._recentOrders.map((order) {
+                final o = order as Map<String, dynamic>;
+                final clientName = o['clientName'] ?? 'Unknown';
+                final totalPrice = o['totalPrice'] ?? 0;
+                final status = o['status'] ?? 'pending';
+                final items = o['items'] as List? ?? [];
+                final createdAt = o['createdAt'];
+
+                String summary = '';
+                if (items.isNotEmpty) {
+                  if (items.length == 1) {
+                    summary = '${items[0]['vaccineName']} — ${items[0]['quantity']} units';
+                  } else {
+                    final qty = items.fold<int>(0, (s, i) => s + (i['quantity'] as int));
+                    summary = '${items.length} items — $qty units';
+                  }
+                } else {
+                  summary = 'Order #${o['_id']?.toString().substring(0, 8) ?? '—'}';
+                }
+
+                String date = '';
+                if (createdAt != null) {
+                  try {
+                    final d = DateTime.parse(createdAt.toString());
+                    date = '${d.day}/${d.month}/${d.year}';
+                  } catch (_) { date = createdAt.toString(); }
+                }
+
+                final statusData = _statusStyle(status);
+
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 10),
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF0F4FF),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Row(
                     children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(summary,
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 14,
+                                    color: Color(0xFF0D1B2A))),
+                            const SizedBox(height: 4),
+                            Text('$clientName  •  $date',
+                                style: const TextStyle(
+                                    fontSize: 12, color: Color(0xFF6B7A9D))),
+                          ],
+                        ),
+                      ),
                       Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
-                          Text('₹$totalPrice', style: const TextStyle(fontWeight: FontWeight.bold)),
+                          Text('₹$totalPrice',
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  color: Color(0xFF4361EE))),
+                          const SizedBox(height: 4),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                             decoration: BoxDecoration(
-                              color: statusColor.withOpacity(0.2),
-                              borderRadius: BorderRadius.circular(4),
+                              color: statusData.$2,
+                              borderRadius: BorderRadius.circular(20),
                             ),
-                            child: Text(
-                              status,
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: statusColor,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
+                            child: Text(status,
+                                style: TextStyle(
+                                    fontSize: 11,
+                                    color: statusData.$1,
+                                    fontWeight: FontWeight.w600)),
                           ),
                         ],
                       ),
                     ],
                   ),
-                ),
-              );
-            }).toList(),
+                );
+              }),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildRecentStockActivitySection(
-      BuildContext context, bool isAdmin) {
+  Widget _buildStockSection() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Recent Stock Activity',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 8),
+        const Text('Recent Stock',
+            style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF0D1B2A))),
+        const SizedBox(height: 12),
         if (_isLoading && _recentVaccines.isEmpty)
-          const Center(child: CircularProgressIndicator()),
-        if (!_isLoading)
-          Column(
-            children: [
-              if (_recentVaccines.isNotEmpty)
-                _buildVaccineActivityCard(context, isAdmin),
-              if (_recentVaccines.isEmpty)
-                const Card(
-                  child: Padding(
-                    padding: EdgeInsets.all(12),
-                    child: Text('No recent stock activity found.'),
-                  ),
+          const Center(child: CircularProgressIndicator(color: Color(0xFF4361EE)))
+        else if (_recentVaccines.isEmpty)
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: const Text('No stock activity.', style: TextStyle(color: Color(0xFF6B7A9D))),
+          )
+        else
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF4361EE).withOpacity(0.06),
+                  blurRadius: 16,
+                  offset: const Offset(0, 4),
                 ),
-            ],
+              ],
+            ),
+            child: Column(
+              children: _recentVaccines.asMap().entries.map((entry) {
+                final i = entry.key;
+                final v = entry.value as Map<String, dynamic>;
+                final name = v['vaccineName']?.toString() ?? v['productName']?.toString() ?? '';
+                final batch = v['batchNumber']?.toString() ?? '';
+                final rawQty = v['quantity'];
+                final qty = rawQty is num ? rawQty.toInt() : int.tryParse(rawQty?.toString() ?? '0') ?? 0;
+                final low = qty < 10;
+                final isLast = i == _recentVaccines.length - 1;
+
+                return Column(
+                  children: [
+                    ListTile(
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                      leading: Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: low ? const Color(0xFFFFF8E1) : const Color(0xFFEEF2FF),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Icon(
+                          Icons.vaccines_rounded,
+                          size: 20,
+                          color: low ? const Color(0xFFFFB703) : const Color(0xFF4361EE),
+                        ),
+                      ),
+                      title: Text(name,
+                          style: const TextStyle(
+                              fontWeight: FontWeight.w600, fontSize: 14, color: Color(0xFF0D1B2A))),
+                      subtitle: Text('Batch: $batch',
+                          style: const TextStyle(fontSize: 12, color: Color(0xFF6B7A9D))),
+                      trailing: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Text('$qty units',
+                              style: TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  color: low ? const Color(0xFFFFB703) : const Color(0xFF0D1B2A))),
+                          if (low)
+                            const Text('Low Stock',
+                                style: TextStyle(fontSize: 11, color: Color(0xFFFFB703))),
+                        ],
+                      ),
+                    ),
+                    if (!isLast)
+                      const Divider(height: 1, indent: 72, color: Color(0xFFE8ECFF)),
+                  ],
+                );
+              }).toList(),
+            ),
           ),
       ],
     );
   }
 
-  Widget _buildVaccineActivityCard(BuildContext context, bool isAdmin) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Recent Vaccine Batches',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            ..._recentVaccines.map((v) {
-              final vaccine = v as Map<String, dynamic>;
-              final name = vaccine['vaccineName']?.toString() ?? '';
-              final batch = vaccine['batchNumber']?.toString() ?? '';
-
-              final rawQuantity = vaccine['quantity'];
-              int quantity = 0;
-              if (rawQuantity is num) {
-                quantity = rawQuantity.toInt();
-              } else if (rawQuantity != null) {
-                quantity = int.tryParse(rawQuantity.toString()) ?? 0;
-              }
-
-              final lowStock = quantity < 10;
-
-              final manufacturer =
-                  vaccine['manufacturer']?.toString() ?? '';
-              final expiry = vaccine['expiryDate']?.toString() ?? '';
-              
-              final purchasePrice = vaccine['purchasePrice']?.toString() ?? '0';
-              final sellingPrice = vaccine['sellingPrice']?.toString() ?? '0';
-
-              return Container(
-                margin: const EdgeInsets.symmetric(vertical: 4),
-                decoration: BoxDecoration(
-                  color:
-                      lowStock ? Colors.orange.shade50 : Colors.transparent,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                    color: lowStock
-                        ? Colors.orange.shade300
-                        : Colors.grey.shade300,
-                  ),
-                ),
-                child: ListTile(
-                  dense: true,
-                  title: Text(name),
-                  subtitle: isAdmin
-                      ? Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('Batch: $batch • Qty: $quantity'),
-                            if (purchasePrice != '0' && sellingPrice != '0')
-                              Text(
-                                'Cost: ₹${double.tryParse(purchasePrice)?.toStringAsFixed(2) ?? purchasePrice} • Selling: ₹${double.tryParse(sellingPrice)?.toStringAsFixed(2) ?? sellingPrice}',
-                                style: const TextStyle(fontSize: 12, color: Colors.grey),
-                              ),
-                            Text('Manufacturer: $manufacturer\nExpiry: $expiry'),
-                          ],
-                        )
-                      : Text('Batch: $batch • Qty: $quantity'),
-                  trailing: lowStock
-                      ? const Icon(
-                          Icons.warning_amber_rounded,
-                          color: Colors.orange,
-                        )
-                      : null,
-                ),
-              );
-            }),
-          ],
-        ),
-      ),
-    );
+  (Color, Color) _statusStyle(String status) {
+    switch (status.toLowerCase()) {
+      case 'completed': return (const Color(0xFF06D6A0), const Color(0xFFE6FFF9));
+      case 'rejected': return (const Color(0xFFEF233C), const Color(0xFFFFE8EC));
+      case 'accepted': return (const Color(0xFF4361EE), const Color(0xFFEEF2FF));
+      default: return (const Color(0xFFFFB703), const Color(0xFFFFF8E1));
+    }
   }
 
   @override

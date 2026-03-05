@@ -4,16 +4,14 @@ import 'package:http/http.dart' as http;
 
 class ApiClient {
   static String get _baseUrl {
-    if (kReleaseMode) {
-      return 'http://localhost:5000/api/v1'; // TODO: Update for production
-    }
-    // Android Emulator requires 10.0.2.2 to access host localhost
-    if (defaultTargetPlatform == TargetPlatform.android) {
-      return 'http://10.0.2.2:5000/api/v1';
-    }
-    // iOS Emulator, Web, and Desktop use localhost
-    return 'http://localhost:5000/api/v1';
+  if (kReleaseMode) {
+    return 'http://10.76.214.48:5000/api/v1';
   }
+  if (defaultTargetPlatform == TargetPlatform.android) {
+    return 'http://10.76.214.48:5000/api/v1';
+  }
+  return 'http://localhost:5000/api/v1';
+}
 
   static String? _token;
 

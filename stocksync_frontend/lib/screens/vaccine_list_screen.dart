@@ -1,456 +1,347 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-
+import '../providers/cart_provider.dart';
 import '../api_client.dart';
 import '../auth/auth_provider.dart';
-import '../services/socket_service.dart';
 import 'vaccine_form_page.dart';
 
 class VaccineListScreen extends StatefulWidget {
   const VaccineListScreen({super.key});
-
   @override
   State<VaccineListScreen> createState() => _VaccineListScreenState();
 }
 
 class _VaccineListScreenState extends State<VaccineListScreen> {
+  final TextEditingController _searchCtrl = TextEditingController();
   bool _isLoading = false;
-  List<dynamic> _vaccines = [];
+  List<Map<String, dynamic>> _vaccines = [];
+  List<Map<String, dynamic>> _filtered = [];
 
   @override
   void initState() {
     super.initState();
-    _loadVaccines();
-    _setupSocketListeners();
+    _load();
+    _searchCtrl.addListener(_filter);
   }
 
-  void _setupSocketListeners() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final auth = Provider.of<AuthProvider>(context, listen: false);
-      final token = auth.token;
-      if (token != null) {
-        SocketService().connect(token: token);
-        // Listen for real-time vaccine quantity updates
-        SocketService().on('vaccine:updated', (data) {
-          _updateVaccineList(data);
-        });
-      }
-    });
-  }
-
-  void _updateVaccineList(dynamic updatedVaccineData) {
-    if (!mounted) return;
-    
-    if (updatedVaccineData is Map<String, dynamic>) {
-      final updatedId = updatedVaccineData['_id'];
-      
-      setState(() {
-        final index = _vaccines.indexWhere((v) => v['_id'] == updatedId);
-        if (index != -1) {
-          _vaccines[index] = updatedVaccineData;
-        }
-      });
-    }
-  }
-
-  Future<void> _loadVaccines() async {
+  void _filter() {
+    final q = _searchCtrl.text.toLowerCase().trim();
     setState(() {
-      _isLoading = true;
+      _filtered = q.isEmpty
+          ? _vaccines
+          : _vaccines.where((v) {
+              final name = (v['productName'] ?? '').toString().toLowerCase();
+              final div = (v['divisionName'] ?? '').toString().toLowerCase();
+              return name.contains(q) || div.contains(q);
+            }).toList();
     });
-
-    try {
-      final data = await ApiClient.get('/vaccines');
-
-      if (data is Map<String, dynamic>) {
-        final list = data['data'];
-        if (list is List) {
-          setState(() {
-            _vaccines = list;
-          });
-        }
-      } else if (data is List) {
-        setState(() {
-          _vaccines = data;
-        });
-      }
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString())),
-      );
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
-    }
   }
 
-  Future<void> _deleteVaccine(String id) async {
+  Future<void> _load() async {
+    setState(() => _isLoading = true);
     try {
-      await ApiClient.delete('/vaccines/$id');
-      await _loadVaccines();
+      final resp = await ApiClient.get('/products');
+      if (resp is Map && resp['data'] is List) {
+        _vaccines = List<Map<String, dynamic>>.from(resp['data']);
+      } else if (resp is List) {
+        _vaccines = List<Map<String, dynamic>>.from(resp);
+      }
+      _filtered = _vaccines;
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString())),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
     }
+    setState(() => _isLoading = false);
   }
 
-  Future<void> _addToCart(Map<String, dynamic> vaccine) async {
-    final quantityController = TextEditingController(text: '1');
-    int selectedQuantity = 1;
-    
-    final result = await showDialog<int>(
+  Future<void> _addToCart(Map vaccine) async {
+    final ctrl = TextEditingController(text: '1');
+    final qty = await showDialog<int>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text('Add to Cart: ${vaccine['vaccineName']}'),
-        content: StatefulBuilder(
-          builder: (context, setState) {
-            return Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text('Selling Price: ₹${vaccine['sellingPrice'] ?? '0'} per unit'),
-                const SizedBox(height: 16),
-                Text('Available Quantity: ${vaccine['quantity'] ?? '0'}'),
-                const SizedBox(height: 16),
-                Row(
-                  children: [
-                    const Text('Quantity: '),
-                    Expanded(
-                      child: TextField(
-                        controller: quantityController,
-                        keyboardType: TextInputType.number,
-                        decoration: const InputDecoration(
-                          border: OutlineInputBorder(),
-                          hintText: 'Enter quantity',
-                        ),
-                        onChanged: (value) {
-                          final newQuantity = int.tryParse(value) ?? 1;
-                          if (newQuantity > 0) {
-                            setState(() {
-                              selectedQuantity = newQuantity;
-                            });
-                          }
-                        },
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    IconButton(
-                      onPressed: () {
-                        if (selectedQuantity > 1) {
-                          setState(() {
-                            selectedQuantity--;
-                            quantityController.text = selectedQuantity.toString();
-                          });
-                        }
-                      },
-                      icon: const Icon(Icons.remove),
-                    ),
-                    IconButton(
-                      onPressed: () {
-                        final available = int.tryParse(vaccine['quantity'].toString()) ?? 0;
-                        if (selectedQuantity < available) {
-                          setState(() {
-                            selectedQuantity++;
-                            quantityController.text = selectedQuantity.toString();
-                          });
-                        }
-                      },
-                      icon: const Icon(Icons.add),
-                    ),
-                  ],
-                ),
-              ],
-            );
-          },
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(vaccine['productName'] ?? '',
+            style: const TextStyle(fontWeight: FontWeight.w700)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('Select quantity to add to cart',
+                style: TextStyle(color: Color(0xFF6B7A9D), fontSize: 13)),
+            const SizedBox(height: 16),
+            TextField(
+              controller: ctrl,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                labelText: 'Quantity',
+                prefixIcon: Icon(Icons.add_shopping_cart_rounded, color: Color(0xFF4361EE)),
+              ),
+            ),
+          ],
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Cancel'),
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel', style: TextStyle(color: Color(0xFF6B7A9D))),
           ),
           ElevatedButton(
-            onPressed: () {
-              final available = int.tryParse(vaccine['quantity'].toString()) ?? 0;
-              if (selectedQuantity > 0 && selectedQuantity <= available) {
-                Navigator.of(ctx).pop(selectedQuantity);
-              } else {
-                ScaffoldMessenger.of(ctx).showSnackBar(
-                  SnackBar(
-                    content: Text(selectedQuantity > available 
-                        ? 'Only $available units available' 
-                        : 'Please enter a valid quantity'),
-                  ),
-                );
-              }
-            },
+            onPressed: () => Navigator.pop(context, int.tryParse(ctrl.text) ?? 1),
             child: const Text('Add to Cart'),
           ),
         ],
       ),
     );
+    if (qty == null) return;
+    Provider.of<CartProvider>(context, listen: false).addItem(vaccine, qty);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Text('Added to cart ✓'),
+        backgroundColor: const Color(0xFF06D6A0),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+    );
+  }
 
-    if (result != null && result > 0) {
-      try {
-        final orderData = {
-          'vaccineId': vaccine['_id'],
-          'vaccineName': vaccine['vaccineName'],
-          'batchNumber': vaccine['batchNumber'],
-          'quantity': result,
-          'sellingPrice': vaccine['sellingPrice'],
-          'totalPrice': (double.tryParse(vaccine['sellingPrice'].toString()) ?? 0) * result,
-          'notes': 'Order placed via mobile app',
-        };
-
-        // For now, just show success message (backend orders disabled)
-        if (!mounted) return;
-        
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Order placed for ${result} units of ${vaccine['vaccineName']} (Admin will be notified)'),
-            backgroundColor: Colors.green,
-            duration: const Duration(seconds: 3),
-          ),
-        );
-        
-      } catch (e) {
-        if (!mounted) return;
-        
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to place order: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
+  Future<void> _delete(String id) async {
+    await ApiClient.delete('/products/$id');
+    _load();
   }
 
   @override
   Widget build(BuildContext context) {
     final auth = Provider.of<AuthProvider>(context);
     final isAdmin = auth.currentUser?.role == 'admin';
+    final isClient = auth.currentUser?.role == 'client';
 
-    return Stack(
-      children: [
-        RefreshIndicator(
-          onRefresh: _loadVaccines,
-          child: _isLoading
-              ? const Center(child: CircularProgressIndicator())
-              : _vaccines.isEmpty
-                  ? const Center(child: Text('No vaccines found'))
-                  : ListView.builder(
-                      itemCount: _vaccines.length,
-                      itemBuilder: (context, index) {
-                        final vaccine =
-                            _vaccines[index] as Map<String, dynamic>;
-                        final id =
-                            (vaccine['_id'] ?? vaccine['id']).toString();
-                        final name =
-                            vaccine['vaccineName']?.toString() ?? '';
-                        final batch =
-                            vaccine['batchNumber']?.toString() ?? '';
-                        final rawQuantity = vaccine['quantity'];
-                        int quantity = 0;
-                        if (rawQuantity is num) {
-                          quantity = rawQuantity.toInt();
-                        } else if (rawQuantity != null) {
-                          quantity = int.tryParse(rawQuantity.toString()) ?? 0;
-                        }
-                        final purchasePrice = vaccine['purchasePrice']?.toString() ?? '0';
-                        final sellingPrice = vaccine['sellingPrice']?.toString() ?? '0';
-                        final manufacturer = vaccine['manufacturer']?.toString() ?? '';
-                        final expiry = vaccine['expiryDate']?.toString() ?? '';
-                        final isLowStock = quantity < 10;
+    return Scaffold(
+      backgroundColor: const Color(0xFFF0F4FF),
+      body: Column(
+        children: [
+          // Search bar
+          Container(
+            color: Colors.white,
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _searchCtrl,
+                    decoration: InputDecoration(
+                      hintText: 'Search products...',
+                      prefixIcon: const Icon(Icons.search_rounded, color: Color(0xFF4361EE)),
+                      suffixIcon: _searchCtrl.text.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(Icons.close_rounded, size: 18),
+                              onPressed: () { _searchCtrl.clear(); _filter(); },
+                            )
+                          : null,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // Count bar
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            color: const Color(0xFFEEF2FF),
+            child: Row(
+              children: [
+                const Icon(Icons.inventory_2_rounded,
+                    size: 16, color: Color(0xFF4361EE)),
+                const SizedBox(width: 6),
+                Text(
+                  '${_filtered.length} product${_filtered.length == 1 ? '' : 's'}',
+                  style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
+                      color: Color(0xFF4361EE)),
+                ),
+              ],
+            ),
+          ),
 
-                        return Card(
-                          margin: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 6,
-                          ),
-                          color: isLowStock
-                              ? Colors.orange.shade50
-                              : null,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            side: BorderSide(
-                              color: isLowStock
-                                  ? Colors.orange.shade300
-                                  : Colors.grey.shade300,
+          Expanded(
+            child: _isLoading
+                ? const Center(
+                    child: CircularProgressIndicator(color: Color(0xFF4361EE)))
+                : _filtered.isEmpty
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Container(
+                              width: 80,
+                              height: 80,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFEEF2FF),
+                                borderRadius: BorderRadius.circular(24),
+                              ),
+                              child: const Icon(Icons.inventory_2_outlined,
+                                  size: 40, color: Color(0xFF4361EE)),
                             ),
-                          ),
-                          child: ListTile(
-                            title: Text(name),
-                            subtitle: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text('Batch: $batch'),
-                                if (manufacturer.isNotEmpty)
-                                  Text('Manufacturer: $manufacturer'),
-                                if (expiry.isNotEmpty)
-                                  Text('Expiry: ${_formatDate(expiry)}'),
-                                if (isAdmin) ...[
-                                  const SizedBox(height: 4),
-                                  Text('Quantity: $quantity'),
-                                  const SizedBox(height: 4),
-                                  Row(
-                                    children: [
-                                      Text(
-                                        'Cost: ₹${double.tryParse(purchasePrice)?.toStringAsFixed(2) ?? purchasePrice}',
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.w500,
-                                          color: Colors.blue,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 16),
-                                      Text(
-                                        'Selling: ₹${double.tryParse(sellingPrice)?.toStringAsFixed(2) ?? sellingPrice}',
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.w500,
-                                          color: Colors.green,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                                if (!isAdmin) ...[
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    'Price: ₹${double.tryParse(sellingPrice)?.toStringAsFixed(2) ?? sellingPrice}',
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.w500,
-                                      color: Colors.green,
-                                    ),
-                                  ),
-                                ],
+                            const SizedBox(height: 16),
+                            const Text('No products found',
+                                style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                    color: Color(0xFF0D1B2A))),
+                            const SizedBox(height: 4),
+                            const Text('Try a different search term',
+                                style: TextStyle(
+                                    fontSize: 13, color: Color(0xFF6B7A9D))),
+                          ],
+                        ),
+                      )
+                    : ListView.builder(
+                        padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
+                        itemCount: _filtered.length,
+                        itemBuilder: (context, i) {
+                          final v = _filtered[i];
+                          final name = v['productName']?.toString() ?? '';
+                          final qty = int.tryParse(v['quantity']?.toString() ?? '0') ?? 0;
+                          final price = v['salesPrice']?.toString() ?? '0';
+                          final low = qty < 10;
+
+                          return Container(
+                            margin: const EdgeInsets.only(bottom: 10),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(16),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: const Color(0xFF4361EE).withOpacity(0.06),
+                                  blurRadius: 12,
+                                  offset: const Offset(0, 2),
+                                ),
                               ],
                             ),
-                            isThreeLine: true,
-                            trailing: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                if (isLowStock)
-                                  const Icon(
-                                    Icons.warning_amber_rounded,
-                                    color: Colors.orange,
+                            child: Padding(
+                              padding: const EdgeInsets.all(16),
+                              child: Row(
+                                children: [
+                                  // Icon
+                                  Container(
+                                    width: 48,
+                                    height: 48,
+                                    decoration: BoxDecoration(
+                                      gradient: const LinearGradient(
+                                        colors: [Color(0xFF4361EE), Color(0xFF7B9EFF)],
+                                      ),
+                                      borderRadius: BorderRadius.circular(14),
+                                    ),
+                                    child: const Icon(Icons.vaccines_rounded,
+                                        color: Colors.white, size: 24),
                                   ),
-                                if (isAdmin) ...[
-                                  IconButton(
-                                    icon: const Icon(Icons.add_box_outlined),
-                                    tooltip: 'Restock / Add Batch',
-                                    onPressed: () async {
-                                      final created =
-                                          await Navigator.of(context)
-                                              .push<bool>(
-                                        MaterialPageRoute(
-                                          builder: (_) => VaccineFormScreen(
-                                            vaccine: vaccine,
-                                            isRestock: true,
-                                          ),
-                                        ),
-                                      );
-                                      if (created == true) {
-                                        await _loadVaccines();
-                                      }
-                                    },
-                                  ),
-                                  IconButton(
-                                    icon: const Icon(Icons.edit),
-                                    onPressed: () async {
-                                      final updated =
-                                          await Navigator.of(context)
-                                              .push<bool>(
-                                        MaterialPageRoute(
-                                          builder: (_) => VaccineFormScreen(
-                                            vaccine: vaccine,
-                                          ),
-                                        ),
-                                      );
-                                      if (updated == true) {
-                                        await _loadVaccines();
-                                      }
-                                    },
-                                  ),
-                                  IconButton(
-                                    icon: const Icon(Icons.delete),
-                                    onPressed: () async {
-                                      final confirmed =
-                                          await showDialog<bool>(
-                                        context: context,
-                                        builder: (ctx) => AlertDialog(
-                                          title:
-                                              const Text('Delete Vaccine'),
-                                          content: const Text(
-                                              'Are you sure you want to delete this vaccine record?'),
-                                          actions: [
-                                            TextButton(
-                                              onPressed: () =>
-                                                  Navigator.of(ctx)
-                                                      .pop(false),
-                                              child: const Text('Cancel'),
-                                            ),
-                                            TextButton(
-                                              onPressed: () =>
-                                                  Navigator.of(ctx)
-                                                      .pop(true),
-                                              child: const Text('Delete'),
+                                  const SizedBox(width: 14),
+                                  // Info
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(name,
+                                            style: const TextStyle(
+                                                fontWeight: FontWeight.w700,
+                                                fontSize: 15,
+                                                color: Color(0xFF0D1B2A))),
+                                        const SizedBox(height: 4),
+                                        Row(
+                                          children: [
+                                            Text('₹$price',
+                                                style: const TextStyle(
+                                                    fontWeight: FontWeight.w700,
+                                                    color: Color(0xFF4361EE),
+                                                    fontSize: 14)),
+                                            const SizedBox(width: 8),
+                                            Container(
+                                              padding: const EdgeInsets.symmetric(
+                                                  horizontal: 8, vertical: 2),
+                                              decoration: BoxDecoration(
+                                                color: low
+                                                    ? const Color(0xFFFFF8E1)
+                                                    : const Color(0xFFE6FFF9),
+                                                borderRadius: BorderRadius.circular(20),
+                                              ),
+                                              child: Text(
+                                                low ? '⚠ $qty left' : '$qty in stock',
+                                                style: TextStyle(
+                                                    fontSize: 11,
+                                                    fontWeight: FontWeight.w600,
+                                                    color: low
+                                                        ? const Color(0xFFFFB703)
+                                                        : const Color(0xFF06D6A0)),
+                                              ),
                                             ),
                                           ],
                                         ),
-                                      );
-
-                                      if (confirmed == true) {
-                                        await _deleteVaccine(id);
-                                      }
-                                    },
+                                      ],
+                                    ),
                                   ),
+                                  // Actions
+                                  if (isAdmin)
+                                    Row(
+                                      children: [
+                                        _iconBtn(Icons.edit_rounded, const Color(0xFF4361EE), () async {
+                                          await Navigator.push(context,
+                                            MaterialPageRoute(builder: (_) => VaccineFormScreen(vaccine: v)));
+                                          _load();
+                                        }),
+                                        _iconBtn(Icons.delete_outline_rounded, const Color(0xFFEF233C), () => _delete(v['_id'])),
+                                      ],
+                                    )
+                                  else if (isClient)
+                                    ElevatedButton.icon(
+                                      onPressed: () => _addToCart(v),
+                                      icon: const Icon(Icons.add_shopping_cart_rounded, size: 16),
+                                      label: const Text('Add'),
+                                      style: ElevatedButton.styleFrom(
+                                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                        textStyle: const TextStyle(fontSize: 13),
+                                      ),
+                                    ),
                                 ],
-                              ],
+                              ),
                             ),
-                          ),
-                        );
-                      },
-                    ),
-        ),
-        if (isAdmin)
-          Positioned(
-            bottom: 16,
-            right: 16,
-            child: FloatingActionButton(
-              onPressed: () async {
-                final created = await Navigator.of(context).push<bool>(
-                  MaterialPageRoute(
-                    builder: (_) => const VaccineFormScreen(),
-                  ),
-                );
-                if (created == true) {
-                  await _loadVaccines();
-                }
-              },
-              child: const Icon(Icons.add),
-            ),
+                          );
+                        },
+                      ),
           ),
-      ],
+        ],
+      ),
+      floatingActionButton: isAdmin
+          ? FloatingActionButton.extended(
+              onPressed: () async {
+                await Navigator.push(context,
+                    MaterialPageRoute(builder: (_) => const VaccineFormScreen()));
+                _load();
+              },
+              icon: const Icon(Icons.add_rounded),
+              label: const Text('Add Product'),
+            )
+          : null,
     );
   }
 
-  String _formatDate(String dateString) {
-    try {
-      final date = DateTime.parse(dateString);
-      return '${date.day}-${date.month.toString().padLeft(2, '0')}-${date.year}';
-    } catch (e) {
-      return dateString;
-    }
+  Widget _iconBtn(IconData icon, Color color, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 34,
+        height: 34,
+        margin: const EdgeInsets.only(left: 6),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Icon(icon, size: 17, color: color),
+      ),
+    );
   }
 
   @override
   void dispose() {
-    try {
-      SocketService().off('vaccine:updated');
-    } catch (_) {}
+    _searchCtrl.dispose();
     super.dispose();
   }
 }
