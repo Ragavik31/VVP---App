@@ -2,6 +2,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
 const User = require('../models/user.model');
+const Order = require('../models/order.model');
 
 const signToken = user => {
   const payload = {
@@ -75,14 +76,14 @@ const login = async (req, res) => {
     }
 
     let user;
-    
+
     if (username) {
-       // Login by username
-       user = await User.findOne({ username });
+      // Login by username
+      user = await User.findOne({ username });
     } else {
-       // Legacy login by role
-       const dbRole = role === 'admin' ? 'admin' : 'staff';
-       user = await User.findOne({ role: dbRole });
+      // Legacy login by role
+      const dbRole = role === 'admin' ? 'admin' : 'staff';
+      user = await User.findOne({ role: dbRole });
     }
 
     if (!user) {
@@ -144,9 +145,22 @@ const getUsersByRole = async (req, res) => {
 
     const users = await User.find({ role }).select('-passwordHash');
 
+    // For staff, calculate how many active orders each member has
+    const enriched = await Promise.all(users.map(async (user) => {
+      const base = sanitizeUser(user);
+      if (role === 'staff') {
+        const activeOrders = await Order.countDocuments({
+          assignedTo: user._id,
+          status: { $in: ['assigned', 'accepted'] },
+        });
+        return { ...base, activeOrders, isFree: activeOrders === 0 };
+      }
+      return base;
+    }));
+
     res.json({
       success: true,
-      data: users.map(sanitizeUser),
+      data: enriched,
     });
   } catch (error) {
     console.error('Get users by role error', error);

@@ -169,11 +169,12 @@ const updateOrderStatus = async (req, res) => {
     }
 
     if (status === 'completed') order.completedAt = new Date();
+    if (status === 'delivered') order.deliveredAt = new Date();
 
     order.status = status;
     await order.save();
 
-    socketUtil.getIO().emit('order:status_changed', order);
+    socketUtil.getIO().emit('order:status_changed', { ...order.toObject(), statusLabel: status });
     res.json({ success: true, data: order });
 
   } catch {

@@ -17,6 +17,7 @@ class _StaffOrderManagementScreenState
     extends State<StaffOrderManagementScreen> {
   bool _isLoading = false;
   List<dynamic> _assignedOrders = [];
+  String? _error;
 
   @override
   void initState() {
@@ -37,57 +38,136 @@ class _StaffOrderManagementScreenState
   }
 
   Future<void> _loadAssignedOrders() async {
-    setState(() => _isLoading = true);
+    setState(() { _isLoading = true; _error = null; });
 
     try {
       final data = await ApiClient.get('/orders?status=assigned');
-      if (data['data'] != null) {
-        _assignedOrders = data['data'];
+      List<dynamic> orders = [];
+      if (data is Map && data['data'] is List) {
+        orders = data['data'];
+      } else if (data is List) {
+        orders = data;
       }
+      if (mounted) setState(() => _assignedOrders = orders);
     } catch (e) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text("Error: $e")));
+      if (mounted) setState(() => _error = e.toString());
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
-
-    setState(() => _isLoading = false);
   }
 
   Future<void> _acceptOrder(String id) async {
-    await ApiClient.patch('/orders/$id/accept', {});
-    _loadAssignedOrders();
+    try {
+      await ApiClient.patch('/orders/$id/accept', {});
+      _loadAssignedOrders();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to accept order: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
   }
 
-  Future<void> _completeOrder(String id) async {
-    await ApiClient.patch('/orders/$id/status', {"status": "delivered"});
-    _loadAssignedOrders();
+  Future<void> _deliverOrder(String id) async {
+    try {
+      await ApiClient.patch('/orders/$id/status', {'status': 'delivered'});
+      _loadAssignedOrders();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Order marked as Delivered!'),
+            backgroundColor: Color(0xFF4CAF50),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to deliver order: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
+  Map<String, dynamic> _statusStyle(String status) {
+    switch (status) {
+      case 'assigned':
+        return {'color': const Color(0xFF4361EE), 'bg': const Color(0xFFE8EDFF), 'label': 'Assigned'};
+      case 'accepted':
+        return {'color': const Color(0xFFFF9800), 'bg': const Color(0xFFFFF3E0), 'label': 'Accepted'};
+      case 'delivered':
+        return {'color': const Color(0xFF4CAF50), 'bg': const Color(0xFFE8F5E9), 'label': 'Delivered'};
+      default:
+        return {'color': const Color(0xFF6B7A9D), 'bg': const Color(0xFFF0F4FF), 'label': status};
+    }
   }
 
   void _showOrderDetails(Map order) {
     final items = order['items'] as List? ?? [];
+    final statusData = _statusStyle(order['status'] ?? '');
 
     showModalBottomSheet(
       context: context,
-      builder: (_) => Padding(
-        padding: const EdgeInsets.all(20),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        padding: const EdgeInsets.all(24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text("Order Details",
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-
-            const SizedBox(height: 10),
-            Text("Client: ${order['clientName']}"),
-            Text("Payment: ${order['paymentMethod']}"),
-            Text("Total: ₹${order['totalPrice']}"),
-
-            const SizedBox(height: 15),
-            const Text("Items:",
-                style: TextStyle(fontWeight: FontWeight.bold)),
-
-            ...items.map((item) => Text(
-                "• ${item['productName']}  x${item['quantity']}  = ₹${item['itemTotal']}")),
-
+            Center(
+              child: Container(
+                width: 40, height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                const Text('Order Details',
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: Color(0xFF0D1B2A))),
+                const Spacer(),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                      color: statusData['bg'] as Color,
+                      borderRadius: BorderRadius.circular(20)),
+                  child: Text(statusData['label'] as String,
+                      style: TextStyle(
+                          color: statusData['color'] as Color,
+                          fontWeight: FontWeight.w600, fontSize: 12)),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            _detailRow(Icons.person_rounded, 'Client', order['clientName'] ?? 'Unknown'),
+            _detailRow(Icons.payments_rounded, 'Payment', order['paymentMethod'] ?? '—'),
+            _detailRow(Icons.currency_rupee_rounded, 'Total', '₹${order['totalPrice']}'),
+            const Divider(height: 24),
+            const Text('Items', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15, color: Color(0xFF0D1B2A))),
+            const SizedBox(height: 8),
+            ...items.map((item) => Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: Row(
+                children: [
+                  const Icon(Icons.fiber_manual_record, size: 8, color: Color(0xFF4361EE)),
+                  const SizedBox(width: 8),
+                  Expanded(child: Text('${item['vaccineName']}  ×${item['quantity']}',
+                      style: const TextStyle(color: Color(0xFF0D1B2A)))),
+                  Text('₹${item['itemTotal']}',
+                      style: const TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF4361EE))),
+                ],
+              ),
+            )),
             const SizedBox(height: 20),
           ],
         ),
@@ -95,56 +175,146 @@ class _StaffOrderManagementScreenState
     );
   }
 
+  Widget _detailRow(IconData icon, String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        children: [
+          Icon(icon, size: 18, color: const Color(0xFF6B7A9D)),
+          const SizedBox(width: 8),
+          Text('$label: ', style: const TextStyle(color: Color(0xFF6B7A9D), fontSize: 14)),
+          Text(value, style: const TextStyle(color: Color(0xFF0D1B2A), fontWeight: FontWeight.w600, fontSize: 14)),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    if (_isLoading) return const Center(child: CircularProgressIndicator());
-    if (_assignedOrders.isEmpty)
-      return const Center(child: Text("No assigned orders"));
-
     return Scaffold(
       backgroundColor: const Color(0xFFF0F4FF),
       body: RefreshIndicator(
+        color: const Color(0xFF4361EE),
         onRefresh: _loadAssignedOrders,
-        child: ListView.builder(
-        itemCount: _assignedOrders.length,
-        itemBuilder: (_, i) {
-          final order = _assignedOrders[i];
-          final isAccepted = order['status'] == 'accepted';
-          final items = order['items'] as List? ?? [];
+        child: _isLoading && _assignedOrders.isEmpty
+            ? const Center(child: CircularProgressIndicator(color: Color(0xFF4361EE)))
+            : _error != null
+                ? Center(child: Text(_error!, style: const TextStyle(color: Colors.red)))
+                : _assignedOrders.isEmpty
+                    ? Center(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.assignment_outlined, size: 64, color: Colors.grey.shade300),
+                            const SizedBox(height: 12),
+                            const Text('No assigned orders yet',
+                                style: TextStyle(color: Color(0xFF6B7A9D), fontSize: 16)),
+                          ],
+                        ),
+                      )
+                    : ListView.builder(
+                        padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
+                        itemCount: _assignedOrders.length,
+                        itemBuilder: (_, i) {
+                          final order = _assignedOrders[i] as Map<String, dynamic>;
+                          final status = order['status'] ?? 'assigned';
+                          final isAccepted = status == 'accepted';
+                          final isDelivered = status == 'delivered';
+                          final items = order['items'] as List? ?? [];
+                          final statusData = _statusStyle(status);
 
-          return Card(
-            child: ListTile(
-              onTap: () => _showOrderDetails(order),
+                          String summary = '';
+                          if (items.isNotEmpty) {
+                            if (items.length == 1) {
+                              summary = '${items[0]['vaccineName']} — ${items[0]['quantity']} units';
+                            } else {
+                              final qty = items.fold<int>(0, (s, itm) => s + (itm['quantity'] as int? ?? 0));
+                              summary = '${items.length} items — $qty units';
+                            }
+                          } else {
+                            summary = 'Order #${order['_id']?.toString().substring(0, 8) ?? '—'}';
+                          }
 
-              title: Text(
-                "${order['clientName']} • ${items.length} items",
-                style: const TextStyle(fontWeight: FontWeight.bold),
-              ),
-
-              subtitle: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text("Payment: ${order['paymentMethod']}"),
-                  Text("Total: ₹${order['totalPrice']}"),
-                  Text("Status: ${order['status']}"),
-                ],
-              ),
-
-              trailing: ElevatedButton(
-                onPressed: () => isAccepted
-                    ? _completeOrder(order['_id'])
-                    : _acceptOrder(order['_id']),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor:
-                      isAccepted ? Colors.green : Colors.black,
-                  foregroundColor: Colors.white,
-                ),
-                child: Text(isAccepted ? "Deliver" : "Accept"),
-              ),
-            ),
-          );
-        },
-      ),
+                          return GestureDetector(
+                            onTap: () => _showOrderDetails(order),
+                            child: Container(
+                              margin: const EdgeInsets.only(bottom: 12),
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(16),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: const Color(0xFF4361EE).withOpacity(0.07),
+                                    blurRadius: 12,
+                                    offset: const Offset(0, 4),
+                                  ),
+                                ],
+                              ),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    width: 44, height: 44,
+                                    decoration: BoxDecoration(
+                                      color: (statusData['bg'] as Color),
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: Icon(
+                                      isDelivered ? Icons.check_circle_rounded : Icons.local_shipping_rounded,
+                                      color: statusData['color'] as Color, size: 22,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(order['clientName'] ?? 'Unknown',
+                                            style: const TextStyle(
+                                                fontWeight: FontWeight.w700, fontSize: 15, color: Color(0xFF0D1B2A))),
+                                        const SizedBox(height: 3),
+                                        Text(summary,
+                                            style: const TextStyle(fontSize: 12, color: Color(0xFF6B7A9D))),
+                                        const SizedBox(height: 4),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                          decoration: BoxDecoration(
+                                            color: statusData['bg'] as Color,
+                                            borderRadius: BorderRadius.circular(20),
+                                          ),
+                                          child: Text(statusData['label'] as String,
+                                              style: TextStyle(
+                                                  fontSize: 11,
+                                                  color: statusData['color'] as Color,
+                                                  fontWeight: FontWeight.w600)),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  if (!isDelivered)
+                                    ElevatedButton(
+                                      onPressed: () => isAccepted
+                                          ? _deliverOrder(order['_id'])
+                                          : _acceptOrder(order['_id']),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: isAccepted ? const Color(0xFF4CAF50) : const Color(0xFF4361EE),
+                                        foregroundColor: Colors.white,
+                                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                        elevation: 0,
+                                      ),
+                                      child: Text(isAccepted ? 'Deliver' : 'Accept',
+                                          style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+                                    )
+                                  else
+                                    const Icon(Icons.check_circle, color: Color(0xFF4CAF50), size: 28),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      ),
       ),
     );
   }

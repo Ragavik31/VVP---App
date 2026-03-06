@@ -58,9 +58,10 @@ class _AdminOrderManagementScreenState
     setState(() => _isLoading = false);
   }
 
-  Future<void> _assignOrder(String orderId, String staffId) async {
+  Future<void> _assignOrder(String orderId, String staffId, String staffName) async {
     await ApiClient.patch('/orders/$orderId/assign', {
       'staffId': staffId,
+      'staffName': staffName,
     });
     _loadData();
   }
@@ -74,19 +75,76 @@ class _AdminOrderManagementScreenState
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text("Assign Order"),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: _staffMembers
-              .map((s) => ListTile(
-                    title: Text(s['name'] ?? "Staff"),
-                    onTap: () {
-                      _assignOrder(order['_id'], s['_id']);
-                      Navigator.pop(context);
-                    },
-                  ))
-              .toList(),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Assign Order',
+            style: TextStyle(fontWeight: FontWeight.w700)),
+        content: _staffMembers.isEmpty
+            ? const Text('No staff members found.')
+            : Column(
+                mainAxisSize: MainAxisSize.min,
+                children: _staffMembers.map((s) {
+                  final isFree = s['isFree'] == true;
+                  final activeOrders = s['activeOrders'] ?? 0;
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 8),
+                    decoration: BoxDecoration(
+                      color: isFree
+                          ? const Color(0xFFE8F5E9)
+                          : const Color(0xFFFFF3E0),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                          color: isFree
+                              ? const Color(0xFF4CAF50)
+                              : const Color(0xFFFF9800),
+                          width: 1),
+                    ),
+                    child: ListTile(
+                      leading: CircleAvatar(
+                        radius: 18,
+                        backgroundColor: isFree
+                            ? const Color(0xFF4CAF50)
+                            : const Color(0xFFFF9800),
+                        child: Text(
+                          (s['name'] ?? '?')[0].toUpperCase(),
+                          style: const TextStyle(
+                              color: Colors.white, fontWeight: FontWeight.w700),
+                        ),
+                      ),
+                      title: Text(s['name'] ?? 'Staff',
+                          style: const TextStyle(fontWeight: FontWeight.w600)),
+                      subtitle: Text(
+                        isFree
+                            ? '✓ Free'
+                            : '${activeOrders} active order${activeOrders != 1 ? 's' : ''}',
+                        style: TextStyle(
+                          color: isFree
+                              ? const Color(0xFF4CAF50)
+                              : const Color(0xFFFF9800),
+                          fontWeight: FontWeight.w500,
+                          fontSize: 12,
+                        ),
+                      ),
+                      onTap: () {
+                        _assignOrder(order['_id'], s['_id'], s['name'] ?? '');
+                        Navigator.pop(context);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                                'Order assigned to ${s['name']}'),
+                            backgroundColor: const Color(0xFF4361EE),
+                          ),
+                        );
+                      },
+                    ),
+                  );
+                }).toList(),
+              ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+        ],
       ),
     );
   }
@@ -97,27 +155,53 @@ class _AdminOrderManagementScreenState
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      builder: (_) => Padding(
-        padding: const EdgeInsets.all(20),
+      backgroundColor: Colors.transparent,
+      builder: (_) => Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        padding: const EdgeInsets.all(24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text("Order Details",
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 10),
-
-            Text("Client: ${order['clientName'] ?? 'Unknown'}"),
-            Text("Payment: ${order['paymentMethod']}"),
-            Text("Total: ₹${order['totalPrice']}"),
-
-            const SizedBox(height: 15),
-            const Text("Items:",
-                style: TextStyle(fontWeight: FontWeight.bold)),
-
-            ...items.map((item) => Text(
-                "• ${item['productName']}  x${item['quantity']}  = ₹${item['itemTotal']}")),
-
+            Center(
+              child: Container(
+                width: 40, height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            const Text('Order Details',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: Color(0xFF0D1B2A))),
+            const SizedBox(height: 12),
+            _detailRow(Icons.person_rounded, 'Client', order['clientName'] ?? 'Unknown'),
+            _detailRow(Icons.payments_rounded, 'Payment', order['paymentMethod'] ?? '—'),
+            _detailRow(Icons.currency_rupee_rounded, 'Total', '₹${order['totalPrice']}'),
+            if (order['assignedStaffName'] != null)
+              _detailRow(Icons.person_pin_rounded, 'Assigned To', order['assignedStaffName']),
+            const Divider(height: 24),
+            const Text('Items', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15, color: Color(0xFF0D1B2A))),
+            const SizedBox(height: 8),
+            ...items.map((item) => Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: Row(
+                children: [
+                  const Icon(Icons.fiber_manual_record, size: 8, color: Color(0xFF4361EE)),
+                  const SizedBox(width: 8),
+                  Expanded(child: Text(
+                    '${item['vaccineName'] ?? item['productName']}  ×${item['quantity']}',
+                    style: const TextStyle(color: Color(0xFF0D1B2A)),
+                  )),
+                  Text('₹${item['itemTotal']}',
+                      style: const TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF4361EE))),
+                ],
+              ),
+            )),
             const SizedBox(height: 20),
           ],
         ),
@@ -125,56 +209,157 @@ class _AdminOrderManagementScreenState
     );
   }
 
+  Widget _detailRow(IconData icon, String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        children: [
+          Icon(icon, size: 18, color: const Color(0xFF6B7A9D)),
+          const SizedBox(width: 8),
+          Text('$label: ', style: const TextStyle(color: Color(0xFF6B7A9D), fontSize: 14)),
+          Expanded(child: Text(value, style: const TextStyle(color: Color(0xFF0D1B2A), fontWeight: FontWeight.w600, fontSize: 14))),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    if (_isLoading) return const Center(child: CircularProgressIndicator());
-    if (_pendingOrders.isEmpty)
-      return const Center(child: Text("No pending orders"));
+    if (_isLoading && _pendingOrders.isEmpty)
+      return const Center(child: CircularProgressIndicator(color: Color(0xFF4361EE)));
 
     return Scaffold(
       backgroundColor: const Color(0xFFF0F4FF),
       body: RefreshIndicator(
+        color: const Color(0xFF4361EE),
         onRefresh: _loadData,
-        child: ListView.builder(
-        itemCount: _pendingOrders.length,
-        itemBuilder: (_, i) {
-          final order = _pendingOrders[i];
-          final items = order['items'] as List? ?? [];
+        child: _pendingOrders.isEmpty
+            ? Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.inbox_rounded, size: 64, color: Colors.grey.shade300),
+                    const SizedBox(height: 12),
+                    const Text('No pending orders',
+                        style: TextStyle(color: Color(0xFF6B7A9D), fontSize: 16)),
+                  ],
+                ),
+              )
+            : ListView.builder(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
+                itemCount: _pendingOrders.length,
+                itemBuilder: (_, i) {
+                  final order = _pendingOrders[i] as Map<String, dynamic>;
+                  final items = order['items'] as List? ?? [];
+                  final assigned = order['assignedStaffName'];
 
-          return Card(
-            child: ListTile(
-              onTap: () => _showOrderDetails(order),
+                  String summary = '';
+                  if (items.isNotEmpty) {
+                    if (items.length == 1) {
+                      summary = '${items[0]['vaccineName'] ?? items[0]['productName']} — ${items[0]['quantity']} units';
+                    } else {
+                      final qty = items.fold<int>(0, (s, itm) => s + (itm['quantity'] as int? ?? 0));
+                      summary = '${items.length} items — $qty units';
+                    }
+                  } else {
+                    summary = 'Order #${order['_id']?.toString().substring(0, 8) ?? '—'}';
+                  }
 
-              title: Text(
-                "${order['clientName']} • ${items.length} items",
-                style: const TextStyle(fontWeight: FontWeight.bold),
+                  return GestureDetector(
+                    onTap: () => _showOrderDetails(order),
+                    child: Container(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFF4361EE).withOpacity(0.07),
+                            blurRadius: 12,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 44, height: 44,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFE8EDFF),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Icon(Icons.receipt_long_rounded,
+                                color: Color(0xFF4361EE), size: 22),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(order['clientName'] ?? 'Unknown',
+                                    style: const TextStyle(
+                                        fontWeight: FontWeight.w700, fontSize: 15, color: Color(0xFF0D1B2A))),
+                                const SizedBox(height: 2),
+                                Text(summary,
+                                    style: const TextStyle(fontSize: 12, color: Color(0xFF6B7A9D))),
+                                const SizedBox(height: 4),
+                                Text('₹${order['totalPrice']}',
+                                    style: const TextStyle(
+                                        fontWeight: FontWeight.w700,
+                                        color: Color(0xFF4361EE), fontSize: 14)),
+                                if (assigned != null) ...
+                                  [
+                                    const SizedBox(height: 2),
+                                    Row(
+                                      children: [
+                                        const Icon(Icons.person_pin_rounded, size: 13, color: Color(0xFF4CAF50)),
+                                        const SizedBox(width: 4),
+                                        Text('Assigned: $assigned',
+                                            style: const TextStyle(fontSize: 11, color: Color(0xFF4CAF50),
+                                                fontWeight: FontWeight.w600)),
+                                      ],
+                                    ),
+                                  ],
+                              ],
+                            ),
+                          ),
+                          Column(
+                            children: [
+                              IconButton(
+                                icon: Container(
+                                  padding: const EdgeInsets.all(6),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF4361EE),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: const Icon(Icons.assignment_ind_rounded,
+                                      color: Colors.white, size: 18),
+                                ),
+                                onPressed: () => _showAssignDialog(order),
+                                tooltip: 'Assign to Staff',
+                              ),
+                              IconButton(
+                                icon: Container(
+                                  padding: const EdgeInsets.all(6),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFFFE8EC),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: const Icon(Icons.delete_rounded,
+                                      color: Color(0xFFEF233C), size: 18),
+                                ),
+                                onPressed: () => _deleteOrder(order['_id']),
+                                tooltip: 'Delete Order',
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
               ),
-
-              subtitle: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text("Payment: ${order['paymentMethod']}"),
-                  Text("Total: ₹${order['totalPrice']}"),
-                ],
-              ),
-
-              trailing: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.assignment_ind),
-                    onPressed: () => _showAssignDialog(order),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.delete, color: Colors.red),
-                    onPressed: () => _deleteOrder(order['_id']),
-                  ),
-                ],
-              ),
-            ),
-          );
-        },
-      ),
       ),
     );
   }
@@ -184,6 +369,8 @@ class _AdminOrderManagementScreenState
     try {
       SocketService().off('order:created');
       SocketService().off('order:assigned');
+      SocketService().off('order:accepted');
+      SocketService().off('order:status_changed');
       SocketService().off('order:deleted');
     } catch (_) {}
     super.dispose();
