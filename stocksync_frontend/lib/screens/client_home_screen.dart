@@ -96,8 +96,9 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
 
   Widget _navItem(int index, IconData activeIcon, IconData icon, String label) {
     final selected = _index == index;
-    return GestureDetector(
-      onTap: () => setState(() => _index = index),
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => setState(() => _index = index),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
@@ -127,6 +128,7 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 }

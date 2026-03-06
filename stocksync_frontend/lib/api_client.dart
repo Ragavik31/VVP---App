@@ -3,15 +3,10 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 class ApiClient {
+
   static String get _baseUrl {
-  if (kReleaseMode) {
-    return 'http://10.76.214.48:5000/api/v1';
+    return 'https://stocksync-backend-rpnu.onrender.com/api/v1';
   }
-  if (defaultTargetPlatform == TargetPlatform.android) {
-    return 'http://10.76.214.48:5000/api/v1';
-  }
-  return 'http://localhost:5000/api/v1';
-}
 
   static String? _token;
 
@@ -23,12 +18,15 @@ class ApiClient {
     final headers = <String, String>{
       'Content-Type': 'application/json',
     };
+
     if (_token != null) {
       headers['Authorization'] = 'Bearer $_token';
     }
+
     if (extra != null) {
       headers.addAll(extra);
     }
+
     return headers;
   }
 
@@ -78,6 +76,7 @@ class ApiClient {
 
   static dynamic _handleResponse(http.Response response) {
     final statusCode = response.statusCode;
+
     final dynamic data = response.body.isNotEmpty
         ? jsonDecode(response.body)
         : null;
@@ -92,4 +91,5 @@ class ApiClient {
 
     throw Exception(message);
   }
+
 }

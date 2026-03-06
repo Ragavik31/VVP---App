@@ -1,7 +1,7 @@
 const axios = require('axios');
 require('dotenv').config();
 
-const base = process.env.API_BASE || 'http://localhost:5000/api/v1';
+const base = process.env.API_BASE || 'https://stocksync-backend-rpnu.onrender.com';
 
 async function loginAdmin() {
   const res = await axios.post(`${base}/auth/login`, { role: 'admin', password: 'admin123' });

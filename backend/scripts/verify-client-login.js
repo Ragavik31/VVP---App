@@ -2,7 +2,7 @@ const axios = require('axios');
 
 async function verifyLogin() {
   try {
-    const response = await axios.post('http://localhost:5000/api/v1/auth/login', {
+    const response = await axios.post('https://stocksync-backend-rpnu.onrender.com', {
       username: 'drbalaji',
       password: '123456'
     });

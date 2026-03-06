@@ -249,6 +249,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                                       prefixIcon: const Icon(Icons.badge_outlined,
                                           color: Color(0xFF4361EE)),
                                     ),
+                                    dropdownColor: Colors.white,
                                     borderRadius: BorderRadius.circular(12),
                                     items: _roles.map((r) => DropdownMenuItem(
                                       value: r,

@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import 'auth/auth_provider.dart';
+import 'providers/cart_provider.dart';
 import 'screens/client_home_screen.dart';
 import 'screens/home_shell.dart';
 import 'screens/login_screen.dart';
@@ -33,8 +34,11 @@ class VVPApp extends StatelessWidget {
       ),
     );
 
-    return ChangeNotifierProvider(
-      create: (_) => AuthProvider(),
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => AuthProvider()),
+        ChangeNotifierProvider(create: (_) => CartProvider()),
+      ],
       child: Consumer<AuthProvider>(
         builder: (context, auth, _) {
           const primaryColor = Color(0xFF4361EE);

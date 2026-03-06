@@ -1,0 +1,36 @@
+# Flutter/Dart/Pub related
+.dart_tool/
+.packages
+.pub/
+.pub-cache/
+.pubspec.lock
+
+# Flutter build outputs
+build/
+ios/Flutter/.last_build_id
+
+# Generated plugin files
+.flutter-plugins
+.flutter-plugins-dependencies
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# Android
+android/.gradle/
+android/app/build/
+
+# iOS
+ios/Pods/
+ios/.symlinks/
+ios/Flutter/Flutter.framework
+ios/Flutter/Flutter.podspec
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db

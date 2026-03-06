@@ -156,8 +156,9 @@ class _HomeShellState extends State<HomeShell> {
               children: List.generate(navDefs.length, (i) {
                 final item = navDefs[i];
                 final selected = i == _currentIndex;
-                return GestureDetector(
-                  onTap: () => setState(() => _currentIndex = i),
+                return Expanded(
+                  child: GestureDetector(
+                    onTap: () => setState(() => _currentIndex = i),
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 200),
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -188,7 +189,8 @@ class _HomeShellState extends State<HomeShell> {
                       ],
                     ),
                   ),
-                );
+                ),
+              );
               }),
             ),
           ),

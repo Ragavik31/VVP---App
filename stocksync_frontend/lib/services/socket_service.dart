@@ -10,10 +10,7 @@ class SocketService {
 
   String _buildUrl() {
     // Mirror ApiClient logic for emulator
-    if (defaultTargetPlatform == TargetPlatform.android) {
-      return 'http://10.0.2.2:5000';
-    }
-    return 'http://localhost:5000';
+    return 'https://stocksync-backend-rpnu.onrender.com';
   }
 
   void connect({required String token}) {
