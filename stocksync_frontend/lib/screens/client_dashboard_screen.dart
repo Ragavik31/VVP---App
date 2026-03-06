@@ -55,6 +55,13 @@ class _ClientDashboardScreenState extends State<ClientDashboardScreen> {
     }
   }
 
+  String _getGreeting() {
+    final hour = DateTime.now().hour;
+    if (hour < 12) return 'Good Morning';
+    if (hour < 17) return 'Good Afternoon';
+    return 'Good Evening';
+  }
+
   void _logout() {
     showDialog(
       context: context,
@@ -106,47 +113,7 @@ class _ClientDashboardScreenState extends State<ClientDashboardScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Logo + Logout row
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      Container(
-                        height: 40,
-                        width: 120,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        padding: const EdgeInsets.all(4),
-                        child: Image.asset('assets/logo.png', fit: BoxFit.contain),
-                      ),
-                      const Spacer(),
-                      GestureDetector(
-                        onTap: _logout,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.18),
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(color: Colors.white.withOpacity(0.3)),
-                          ),
-                          child: const Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(Icons.logout_rounded, color: Colors.white, size: 16),
-                              SizedBox(width: 6),
-                              Text('Logout',
-                                  style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w600)),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
+
                   Row(
                     children: [
                       CircleAvatar(
@@ -163,7 +130,7 @@ class _ClientDashboardScreenState extends State<ClientDashboardScreen> {
                       ),
                       const SizedBox(width: 12),
                       Text(
-                        'Hello, ${user?.name ?? ''} 👋',
+                        '${_getGreeting()}, ${user?.name?.split(' ')[0] ?? ''} 👋',
                         style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w700,
@@ -343,10 +310,14 @@ class _ClientDashboardScreenState extends State<ClientDashboardScreen> {
                                 }
 
                                 String date = '';
+                                String timeStr = '';
                                 if (createdAt != null) {
                                   try {
-                                    final d = DateTime.parse(createdAt.toString());
+                                    final d = DateTime.parse(createdAt.toString()).toLocal();
                                     date = '${d.day}/${d.month}/${d.year}';
+                                    final h = d.hour.toString().padLeft(2, '0');
+                                    final m = d.minute.toString().padLeft(2, '0');
+                                    timeStr = '$h:$m';
                                   } catch (_) {
                                     date = createdAt.toString();
                                   }
@@ -373,10 +344,14 @@ class _ClientDashboardScreenState extends State<ClientDashboardScreen> {
                                                     fontSize: 14,
                                                     color: Color(0xFF0D1B2A))),
                                             const SizedBox(height: 4),
-                                            Text(date,
-                                                style: const TextStyle(
-                                                    fontSize: 12,
-                                                    color: Color(0xFF6B7A9D))),
+                                            Tooltip(
+                                              message: timeStr.isNotEmpty ? "Ordered at $timeStr" : "",
+                                              triggerMode: TooltipTriggerMode.tap,
+                                              child: Text(date,
+                                                  style: const TextStyle(
+                                                      fontSize: 12,
+                                                      color: Color(0xFF6B7A9D))),
+                                            ),
                                           ],
                                         ),
                                       ),

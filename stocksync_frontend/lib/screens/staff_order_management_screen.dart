@@ -58,7 +58,7 @@ class _StaffOrderManagementScreenState
   }
 
   Future<void> _completeOrder(String id) async {
-    await ApiClient.patch('/orders/$id/status', {"status": "completed"});
+    await ApiClient.patch('/orders/$id/status', {"status": "delivered"});
     _loadAssignedOrders();
   }
 
@@ -101,9 +101,11 @@ class _StaffOrderManagementScreenState
     if (_assignedOrders.isEmpty)
       return const Center(child: Text("No assigned orders"));
 
-    return RefreshIndicator(
-      onRefresh: _loadAssignedOrders,
-      child: ListView.builder(
+    return Scaffold(
+      backgroundColor: const Color(0xFFF0F4FF),
+      body: RefreshIndicator(
+        onRefresh: _loadAssignedOrders,
+        child: ListView.builder(
         itemCount: _assignedOrders.length,
         itemBuilder: (_, i) {
           final order = _assignedOrders[i];
@@ -135,12 +137,14 @@ class _StaffOrderManagementScreenState
                 style: ElevatedButton.styleFrom(
                   backgroundColor:
                       isAccepted ? Colors.green : Colors.black,
+                  foregroundColor: Colors.white,
                 ),
-                child: Text(isAccepted ? "Complete" : "Accept"),
+                child: Text(isAccepted ? "Deliver" : "Accept"),
               ),
             ),
           );
         },
+      ),
       ),
     );
   }

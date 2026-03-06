@@ -43,23 +43,14 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
         title: Row(
           children: [
             Container(
-              width: 90,
+              width: 34,
               height: 34,
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(6),
               ),
-              padding: const EdgeInsets.all(4),
+              padding: const EdgeInsets.all(2),
               child: Image.asset('assets/logo.png', fit: BoxFit.contain),
-            ),
-            const SizedBox(width: 10),
-            Text(
-              _pageTitles[_index],
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
-                color: Colors.white,
-              ),
             ),
           ],
         ),
@@ -101,7 +92,7 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
         onTap: () => setState(() => _index = index),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
         decoration: BoxDecoration(
           color: selected
               ? const Color(0xFF4361EE).withOpacity(0.12)
@@ -119,6 +110,9 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
             const SizedBox(height: 4),
             Text(
               label,
+              maxLines: 1,
+              softWrap: false,
+              overflow: TextOverflow.visible,
               style: TextStyle(
                 fontSize: 11,
                 fontWeight: selected ? FontWeight.w700 : FontWeight.w500,

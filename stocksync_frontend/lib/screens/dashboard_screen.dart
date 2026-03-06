@@ -40,7 +40,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Future<void> _loadDashboardData() async {
     setState(() { _isLoading = true; _error = null; });
     try {
-      final vaccinesResponse = await ApiClient.get('/vaccines');
+      final vaccinesResponse = await ApiClient.get('/products');
       List<dynamic> vaccinesList = [];
       if (vaccinesResponse is Map<String, dynamic>) {
         final data = vaccinesResponse['data'];
@@ -57,6 +57,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  String _getGreeting() {
+    final hour = DateTime.now().hour;
+    if (hour < 12) return 'Good Morning';
+    if (hour < 17) return 'Good Afternoon';
+    return 'Good Evening';
   }
 
   Future<void> _loadOrders() async {
@@ -125,7 +132,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Hello, ${user?.name ?? ''} 👋',
+                              '${_getGreeting()}, ${user?.name?.split(' ')[0] ?? ''} 👋',
                               style: const TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.w700,
@@ -196,7 +203,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       ),
                     if ((isAdmin || isClient)) _buildOrdersCard(),
                     const SizedBox(height: 16),
-                    if (isAdmin) _buildStockSection(),
+                    if (isAdmin || user?.role == 'staff') _buildStockSection(),
                     const SizedBox(height: 80),
                   ],
                 ),
@@ -318,11 +325,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 }
 
                 String date = '';
+                String timeStr = '';
                 if (createdAt != null) {
                   try {
-                    final d = DateTime.parse(createdAt.toString());
+                    final d = DateTime.parse(createdAt.toString()).toLocal();
                     date = '${d.day}/${d.month}/${d.year}';
-                  } catch (_) { date = createdAt.toString(); }
+                    final h = d.hour.toString().padLeft(2, '0');
+                    final m = d.minute.toString().padLeft(2, '0');
+                    timeStr = '$h:$m';
+                  } catch (_) {
+                    date = createdAt.toString();
+                  }
                 }
 
                 final statusData = _statusStyle(status);
@@ -346,9 +359,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                     fontSize: 14,
                                     color: Color(0xFF0D1B2A))),
                             const SizedBox(height: 4),
-                            Text('$clientName  •  $date',
-                                style: const TextStyle(
-                                    fontSize: 12, color: Color(0xFF6B7A9D))),
+                            Tooltip(
+                              message: timeStr.isNotEmpty ? "Ordered at $timeStr" : "",
+                              triggerMode: TooltipTriggerMode.tap,
+                              child: Text('$clientName  •  $date',
+                                  style: const TextStyle(
+                                      fontSize: 12, color: Color(0xFF6B7A9D))),
+                            ),
                           ],
                         ),
                       ),

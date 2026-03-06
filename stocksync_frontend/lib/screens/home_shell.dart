@@ -64,6 +64,7 @@ class _HomeShellState extends State<HomeShell> {
     final navDefs = _navDefs;
 
     return Scaffold(
+      backgroundColor: const Color(0xFFF0F4FF),
       extendBody: true,
       appBar: AppBar(
         flexibleSpace: Container(
@@ -78,23 +79,14 @@ class _HomeShellState extends State<HomeShell> {
         title: Row(
           children: [
             Container(
-              width: 80,
-              height: 32,
+              width: 34,
+              height: 34,
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(6),
               ),
-              padding: const EdgeInsets.all(4),
+              padding: const EdgeInsets.all(2),
               child: Image.asset('assets/logo.png', fit: BoxFit.contain),
-            ),
-            const SizedBox(width: 10),
-            Text(
-              _titles[_currentIndex],
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
-                color: Colors.white,
-              ),
             ),
           ],
         ),
@@ -161,7 +153,7 @@ class _HomeShellState extends State<HomeShell> {
                     onTap: () => setState(() => _currentIndex = i),
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 200),
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
                     decoration: BoxDecoration(
                       color: selected
                           ? const Color(0xFF4361EE).withOpacity(0.12)
@@ -179,6 +171,9 @@ class _HomeShellState extends State<HomeShell> {
                         const SizedBox(height: 4),
                         Text(
                           item.label,
+                          maxLines: 1,
+                          softWrap: false,
+                          overflow: TextOverflow.visible,
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight:

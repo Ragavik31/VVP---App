@@ -29,6 +29,8 @@ class _AdminOrderManagementScreenState
         SocketService().connect(token: token);
         SocketService().on('order:created', (_) => _loadData());
         SocketService().on('order:assigned', (_) => _loadData());
+        SocketService().on('order:accepted', (_) => _loadData());
+        SocketService().on('order:status_changed', (_) => _loadData());
         SocketService().on('order:deleted', (_) => _loadData());
       }
     });
@@ -129,9 +131,11 @@ class _AdminOrderManagementScreenState
     if (_pendingOrders.isEmpty)
       return const Center(child: Text("No pending orders"));
 
-    return RefreshIndicator(
-      onRefresh: _loadData,
-      child: ListView.builder(
+    return Scaffold(
+      backgroundColor: const Color(0xFFF0F4FF),
+      body: RefreshIndicator(
+        onRefresh: _loadData,
+        child: ListView.builder(
         itemCount: _pendingOrders.length,
         itemBuilder: (_, i) {
           final order = _pendingOrders[i];
@@ -170,6 +174,7 @@ class _AdminOrderManagementScreenState
             ),
           );
         },
+      ),
       ),
     );
   }
