@@ -49,3 +49,4 @@ build/
 dist/
 .env
 *.log
+git_log.txt

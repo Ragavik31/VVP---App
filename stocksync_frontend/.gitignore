@@ -34,3 +34,5 @@ ios/Flutter/Flutter.podspec
 # OS
 .DS_Store
 Thumbs.db
+
+git_log.txt
