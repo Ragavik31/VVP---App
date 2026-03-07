@@ -69,6 +69,10 @@ const orderSchema = new mongoose.Schema(
       type: String,
       default: '—',
     },
+    clientCode: {
+      type: String,
+      default: null,
+    },
     assignedTo: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',

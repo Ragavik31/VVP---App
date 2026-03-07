@@ -129,13 +129,32 @@ class _ClientDashboardScreenState extends State<ClientDashboardScreen> {
                         ),
                       ),
                       const SizedBox(width: 12),
-                      Text(
-                        '${_getGreeting()}, ${user?.name?.split(' ')[0] ?? ''} 👋',
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.white,
+                      Expanded(
+                        child: Text(
+                          '${_getGreeting()}, ${user?.name?.split(' ')[0] ?? ''} 👋',
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
+                          ),
                         ),
+                      ),
+                      IconButton(
+                        onPressed: _logout,
+                        icon: Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: Colors.white.withOpacity(0.3)),
+                          ),
+                          child: const Icon(
+                            Icons.logout_rounded,
+                            color: Colors.white,
+                            size: 18,
+                          ),
+                        ),
+                        tooltip: 'Logout',
                       ),
                     ],
                   ),

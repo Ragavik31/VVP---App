@@ -21,6 +21,7 @@ const createOrder = async (req, res) => {
 
     const client = await Client.findOne({ name: user.name });
     const clientContact = client?.contact || '—';
+    const clientCode = client?.code || null;
 
     // 🔥 CHECK + DEDUCT STOCK
     const updatedProducts = [];
@@ -63,6 +64,7 @@ const createOrder = async (req, res) => {
       clientName: user.name,
       clientEmail: user.email,
       clientContact,
+      clientCode,
       notes: req.body.notes || '',
       status: 'pending'
     });
