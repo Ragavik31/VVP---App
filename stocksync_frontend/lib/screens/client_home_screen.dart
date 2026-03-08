@@ -27,7 +27,7 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
     final pages = [
       ClientDashboardScreen(onPlaceOrder: _goToCart),
       const VaccineListScreen(),
-      const ClientOrderPlacementScreen(),
+      ClientOrderPlacementScreen(onOrderPlaced: () => setState(() => _index = 3)),
       const ClientMyOrdersScreen(),
     ];
 

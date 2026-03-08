@@ -23,7 +23,7 @@ router.get('/', getOrders);
 
 // 🟢 ADMIN
 router.get('/pending', authorize('admin'), getPendingOrders);
-router.patch('/:id/status', authorize('admin'), updateOrderStatus);
+router.patch('/:id/status', authorize('admin', 'staff'), updateOrderStatus);
 router.delete('/:id', authorize('admin'), deleteOrder);
 router.patch('/:id/assign', authorize('admin'), assignOrder);
 

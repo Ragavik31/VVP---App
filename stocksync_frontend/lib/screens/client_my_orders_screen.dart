@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../api_client.dart';
+import '../auth/auth_provider.dart';
+import '../services/socket_service.dart';
 
 class ClientMyOrdersScreen extends StatefulWidget {
   const ClientMyOrdersScreen({super.key});
@@ -18,6 +21,24 @@ class _ClientMyOrdersScreenState extends State<ClientMyOrdersScreen> {
   void initState() {
     super.initState();
     _loadOrders();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final token = Provider.of<AuthProvider>(context, listen: false).token;
+      if (token != null) {
+        SocketService().connect(token: token);
+        SocketService().on('order:created', (_) => _loadOrders());
+        SocketService().on('order:status_changed', (_) => _loadOrders());
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    try {
+      SocketService().off('order:created');
+      SocketService().off('order:status_changed');
+    } catch (_) {}
+    super.dispose();
   }
 
   Future<void> _loadOrders() async {

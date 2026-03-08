@@ -70,46 +70,69 @@ class _ProductListScreenState extends State<ProductListScreen> {
         onRefresh: _loadProducts,
         child: _isLoading
             ? const Center(child: CircularProgressIndicator())
-            : _products.isEmpty
-                ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.inventory_2_outlined,
-                          size: 80,
-                          color: Colors.grey[400],
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          'No products found',
-                          style: TextStyle(
-                            fontSize: 18,
-                            color: Colors.grey[600],
-                            fontWeight: FontWeight.w500,
+            : SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                child: Column(
+                  children: [
+                    // ── Prominent Add Product button (admin only) ──
+                    if (isAdmin)
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                        child: SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            onPressed: () async {
+                              final created = await Navigator.of(context).push<bool>(
+                                MaterialPageRoute(
+                                  builder: (_) => const ProductFormScreen(),
+                                ),
+                              );
+                              if (created == true) await _loadProducts();
+                            },
+                            icon: const Icon(Icons.add_rounded, size: 20),
+                            label: const Text('Add New Product',
+                                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF4361EE),
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16)),
+                              elevation: 4,
+                              shadowColor: const Color(0xFF4361EE).withOpacity(0.4),
+                            ),
                           ),
                         ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Add your first product to get started',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.grey[500],
-                          ),
-                        ),
-                      ],
-                    ),
-                  )
-                : Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: GridView.builder(
-                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 2,
-                        crossAxisSpacing: 16,
-                        mainAxisSpacing: 16,
-                        childAspectRatio: 0.7,
                       ),
-                      itemCount: _products.length,
+                    
+                    // ── Product grid ──
+                    _products.isEmpty
+                        ? Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.inventory_2_outlined, size: 80, color: Colors.grey[400]),
+                                const SizedBox(height: 16),
+                                Text('No products found',
+                                    style: TextStyle(fontSize: 18, color: Colors.grey[600], fontWeight: FontWeight.w500)),
+                                const SizedBox(height: 8),
+                                Text('Add your first product to get started',
+                                    style: TextStyle(fontSize: 14, color: Colors.grey[500])),
+                              ],
+                            ),
+                          )
+                        : Padding(
+                            padding: const EdgeInsets.all(16.0),
+                            child: GridView.builder(
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: 2,
+                                crossAxisSpacing: 16,
+                                mainAxisSpacing: 16,
+                                childAspectRatio: 0.7,
+                              ),
+                              itemCount: _products.length,
                       itemBuilder: (context, index) {
                         final product = _products[index] as Map<String, dynamic>;
                         final id = product['_id']?.toString() ?? product['id'];
@@ -287,6 +310,8 @@ class _ProductListScreenState extends State<ProductListScreen> {
                       },
                     ),
                   ),
+                ],
+              ),
       ),
       floatingActionButton: isAdmin
           ? FloatingActionButton.extended(

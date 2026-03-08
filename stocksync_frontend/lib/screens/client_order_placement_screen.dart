@@ -5,7 +5,8 @@ import '../api_client.dart';
 import '../services/payment_service.dart';
 
 class ClientOrderPlacementScreen extends StatefulWidget {
-  const ClientOrderPlacementScreen({super.key});
+  final VoidCallback? onOrderPlaced;
+  const ClientOrderPlacementScreen({super.key, this.onOrderPlaced});
 
   @override
   State<ClientOrderPlacementScreen> createState() =>
@@ -72,6 +73,9 @@ class _ClientOrderPlacementScreenState extends State<ClientOrderPlacementScreen>
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Order placed successfully")),
       );
+
+      // Navigate to My Orders tab
+      widget.onOrderPlaced?.call();
     } catch (e) {
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text("Error: $e")));
