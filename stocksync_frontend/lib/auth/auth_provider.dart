@@ -11,13 +11,11 @@ class AuthProvider with ChangeNotifier {
   String? get token => _token;
   bool get isAuthenticated => _currentUser != null && _token != null;
 
-  Future<void> login(String password, {String? role, String? username}) async {
-    final Map<String, dynamic> body = {'password': password};
-    if (username != null) {
-      body['username'] = username;
-    } else if (role != null) {
-      body['role'] = role;
-    }
+  Future<void> login(String username, String password) async {
+    final Map<String, dynamic> body = {
+      'username': username,
+      'password': password,
+    };
 
     final response = await ApiClient.post('/auth/login', body);
 
@@ -49,5 +47,21 @@ class AuthProvider with ChangeNotifier {
     _token = null;
     ApiClient.setToken(null);
     notifyListeners();
+  }
+
+  Future<void> changePassword(String username, String oldPassword, String newPassword) async {
+    final response = await ApiClient.post('/auth/change-password', {
+      'username': username,
+      'oldPassword': oldPassword,
+      'newPassword': newPassword,
+    });
+
+    if (response is! Map<String, dynamic>) {
+      throw Exception('Unexpected response from server');
+    }
+
+    if (response['success'] != true) {
+      throw Exception(response['message'] ?? 'Failed to change password');
+    }
   }
 }

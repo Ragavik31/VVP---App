@@ -13,17 +13,20 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
   final _formKey = GlobalKey<FormState>();
   final _passwordController = TextEditingController();
   final _usernameController = TextEditingController();
+  
+  // For Change Password
+  final _oldPasswordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
 
-  String? _selectedRole;
   bool _isSubmitting = false;
-  bool _isClientLogin = false;
+  bool _isChangePasswordMode = false;
   bool _obscurePassword = true;
+  bool _obscureOldPassword = true;
+  bool _obscureConfirmPassword = true;
 
   late AnimationController _animCtrl;
   late Animation<double> _fadeAnim;
   late Animation<Offset> _slideAnim;
-
-  final List<String> _roles = ['admin', 'staff1', 'staff2'];
 
   @override
   void initState() {
@@ -40,20 +43,59 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     _animCtrl.dispose();
     _passwordController.dispose();
     _usernameController.dispose();
+    _oldPasswordController.dispose();
+    _confirmPasswordController.dispose();
     super.dispose();
   }
 
-  Future<void> _submit() async {
+  Future<void> _submitLogin() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _isSubmitting = true);
     final auth = Provider.of<AuthProvider>(context, listen: false);
     try {
-      if (_isClientLogin) {
-        await auth.login(_passwordController.text.trim(),
-            username: _usernameController.text.trim());
-      } else {
-        await auth.login(_passwordController.text.trim(), role: _selectedRole!);
-      }
+      await auth.login(
+        _usernameController.text.trim(),
+        _passwordController.text.trim(),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString()), backgroundColor: const Color(0xFFEF233C)),
+      );
+    } finally {
+      if (mounted) setState(() => _isSubmitting = false);
+    }
+  }
+
+  Future<void> _submitChangePassword() async {
+    if (!_formKey.currentState!.validate()) return;
+    if (_passwordController.text != _confirmPasswordController.text) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("New password and confirm password do not match"), backgroundColor: Color(0xFFEF233C)),
+      );
+      return;
+    }
+
+    setState(() => _isSubmitting = true);
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+    try {
+      await auth.changePassword(
+        _usernameController.text.trim(),
+        _oldPasswordController.text.trim(),
+        _passwordController.text.trim(),
+      );
+      
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Password changed successfully! Please login."), backgroundColor: Colors.green),
+      );
+      
+      setState(() {
+        _isChangePasswordMode = false;
+        _passwordController.clear();
+        _oldPasswordController.clear();
+        _confirmPasswordController.clear();
+      });
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -178,119 +220,128 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: [
-                                const Text(
-                                  'Welcome back',
-                                  style: TextStyle(
+                                Text(
+                                  _isChangePasswordMode ? 'Change Password' : 'Welcome back',
+                                  style: const TextStyle(
                                     fontSize: 22,
                                     fontWeight: FontWeight.w700,
                                     color: Color(0xFF0D1B2A),
                                   ),
                                 ),
                                 const SizedBox(height: 4),
-                                const Text(
-                                  'Sign in to continue',
-                                  style: TextStyle(
+                                Text(
+                                  _isChangePasswordMode ? 'Enter your details below' : 'Sign in to continue',
+                                  style: const TextStyle(
                                     fontSize: 14,
                                     color: Color(0xFF6B7A9D),
                                   ),
                                 ),
                                 const SizedBox(height: 24),
 
-                                // Toggle
-                                Container(
-                                  padding: const EdgeInsets.all(4),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFEEF2FF),
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      _buildToggleTab('Staff / Admin', !_isClientLogin, () {
-                                        setState(() {
-                                          _isClientLogin = false;
-                                          _selectedRole = null;
-                                          _usernameController.clear();
-                                          _passwordController.clear();
-                                        });
-                                      }),
-                                      _buildToggleTab('Client', _isClientLogin, () {
-                                        setState(() {
-                                          _isClientLogin = true;
-                                          _selectedRole = null;
-                                          _usernameController.clear();
-                                          _passwordController.clear();
-                                        });
-                                      }),
-                                    ],
-                                  ),
-                                ),
-                                const SizedBox(height: 24),
-
-                                if (_isClientLogin) ...[
-                                  _buildLabel('Username'),
-                                  const SizedBox(height: 6),
-                                  TextFormField(
-                                    controller: _usernameController,
-                                    decoration: InputDecoration(
-                                      hintText: 'Enter client name',
-                                      prefixIcon: const Icon(Icons.person_outline,
-                                          color: Color(0xFF4361EE)),
-                                    ),
-                                    validator: (v) =>
-                                        (v == null || v.trim().isEmpty) ? 'Username required' : null,
-                                  ),
-                                ] else ...[
-                                  _buildLabel('Role'),
-                                  const SizedBox(height: 6),
-                                  DropdownButtonFormField<String>(
-                                    value: _selectedRole,
-                                    decoration: InputDecoration(
-                                      hintText: 'Select your role',
-                                      prefixIcon: const Icon(Icons.badge_outlined,
-                                          color: Color(0xFF4361EE)),
-                                    ),
-                                    dropdownColor: Colors.white,
-                                    borderRadius: BorderRadius.circular(12),
-                                    items: _roles.map((r) => DropdownMenuItem(
-                                      value: r,
-                                      child: Text(r.toUpperCase()),
-                                    )).toList(),
-                                    onChanged: (v) => setState(() => _selectedRole = v),
-                                    validator: (v) =>
-                                        (v == null || v.isEmpty) ? 'Role required' : null,
-                                  ),
-                                ],
-                                const SizedBox(height: 16),
-
-                                _buildLabel('Password'),
+                                // Username / Code
+                                _buildLabel('Username / Client Code'),
                                 const SizedBox(height: 6),
                                 TextFormField(
-                                  controller: _passwordController,
-                                  obscureText: _obscurePassword,
-                                  decoration: InputDecoration(
-                                    hintText: 'Enter password',
-                                    prefixIcon: const Icon(Icons.lock_outline,
-                                        color: Color(0xFF4361EE)),
-                                    suffixIcon: IconButton(
-                                      icon: Icon(
-                                        _obscurePassword
-                                            ? Icons.visibility_outlined
-                                            : Icons.visibility_off_outlined,
-                                        color: const Color(0xFF6B7A9D),
-                                      ),
-                                      onPressed: () =>
-                                          setState(() => _obscurePassword = !_obscurePassword),
-                                    ),
+                                  controller: _usernameController,
+                                  decoration: const InputDecoration(
+                                    hintText: 'e.g. admin or WP001',
+                                    prefixIcon: Icon(Icons.person_outline, color: Color(0xFF4361EE)),
                                   ),
                                   validator: (v) =>
-                                      (v == null || v.trim().isEmpty) ? 'Password required' : null,
+                                      (v == null || v.trim().isEmpty) ? 'Username / Code required' : null,
                                 ),
+                                const SizedBox(height: 16),
+
+                                if (_isChangePasswordMode) ...[
+                                  // Old Password
+                                  _buildLabel('Current Password'),
+                                  const SizedBox(height: 6),
+                                  TextFormField(
+                                    controller: _oldPasswordController,
+                                    obscureText: _obscureOldPassword,
+                                    decoration: InputDecoration(
+                                      hintText: 'Enter current password',
+                                      prefixIcon: const Icon(Icons.lock_clock_outlined, color: Color(0xFF4361EE)),
+                                      suffixIcon: IconButton(
+                                        icon: Icon(
+                                          _obscureOldPassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                                          color: const Color(0xFF6B7A9D),
+                                        ),
+                                        onPressed: () => setState(() => _obscureOldPassword = !_obscureOldPassword),
+                                      ),
+                                    ),
+                                    validator: (v) => (v == null || v.trim().isEmpty) ? 'Old Password required' : null,
+                                  ),
+                                  const SizedBox(height: 16),
+
+                                  // New Password
+                                  _buildLabel('New Password'),
+                                  const SizedBox(height: 6),
+                                  TextFormField(
+                                    controller: _passwordController,
+                                    obscureText: _obscurePassword,
+                                    decoration: InputDecoration(
+                                      hintText: 'Enter new password',
+                                      prefixIcon: const Icon(Icons.lock_outline, color: Color(0xFF4361EE)),
+                                      suffixIcon: IconButton(
+                                        icon: Icon(
+                                          _obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                                          color: const Color(0xFF6B7A9D),
+                                        ),
+                                        onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                                      ),
+                                    ),
+                                    validator: (v) => (v == null || v.trim().isEmpty) ? 'New Password required' : null,
+                                  ),
+                                  const SizedBox(height: 16),
+
+                                  // Confirm New Password
+                                  _buildLabel('Confirm New Password'),
+                                  const SizedBox(height: 6),
+                                  TextFormField(
+                                    controller: _confirmPasswordController,
+                                    obscureText: _obscureConfirmPassword,
+                                    decoration: InputDecoration(
+                                      hintText: 'Confirm new password',
+                                      prefixIcon: const Icon(Icons.lock_reset_outlined, color: Color(0xFF4361EE)),
+                                      suffixIcon: IconButton(
+                                        icon: Icon(
+                                          _obscureConfirmPassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                                          color: const Color(0xFF6B7A9D),
+                                        ),
+                                        onPressed: () => setState(() => _obscureConfirmPassword = !_obscureConfirmPassword),
+                                      ),
+                                    ),
+                                    validator: (v) => (v == null || v.trim().isEmpty) ? 'Confirm Password required' : null,
+                                  ),
+                                ] else ...[
+                                  // Password (Login)
+                                  _buildLabel('Password'),
+                                  const SizedBox(height: 6),
+                                  TextFormField(
+                                    controller: _passwordController,
+                                    obscureText: _obscurePassword,
+                                    decoration: InputDecoration(
+                                      hintText: 'Enter password',
+                                      prefixIcon: const Icon(Icons.lock_outline, color: Color(0xFF4361EE)),
+                                      suffixIcon: IconButton(
+                                        icon: Icon(
+                                          _obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                                          color: const Color(0xFF6B7A9D),
+                                        ),
+                                        onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                                      ),
+                                    ),
+                                    validator: (v) => (v == null || v.trim().isEmpty) ? 'Password required' : null,
+                                  ),
+                                ],
+                                
                                 const SizedBox(height: 28),
 
                                 SizedBox(
                                   height: 52,
                                   child: ElevatedButton(
-                                    onPressed: _isSubmitting ? null : _submit,
+                                    onPressed: _isSubmitting ? null : (_isChangePasswordMode ? _submitChangePassword : _submitLogin),
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: const Color(0xFF4361EE),
                                       foregroundColor: Colors.white,
@@ -304,9 +355,33 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                                             height: 22,
                                             child: CircularProgressIndicator(
                                                 color: Colors.white, strokeWidth: 2.5))
-                                        : const Text('Sign In',
-                                            style: TextStyle(
-                                                fontSize: 16, fontWeight: FontWeight.w700)),
+                                        : Text(
+                                            _isChangePasswordMode ? 'Change Password' : 'Sign In',
+                                            style: const TextStyle(
+                                                fontSize: 16, fontWeight: FontWeight.w700),
+                                          ),
+                                  ),
+                                ),
+                                const SizedBox(height: 16),
+
+                                // Toggle Mode Button
+                                TextButton(
+                                  onPressed: () {
+                                    setState(() {
+                                      _isChangePasswordMode = !_isChangePasswordMode;
+                                      _passwordController.clear();
+                                      _oldPasswordController.clear();
+                                      _confirmPasswordController.clear();
+                                    });
+                                  },
+                                  child: Text(
+                                    _isChangePasswordMode 
+                                        ? 'Back to Login' 
+                                        : 'Change Password?',
+                                    style: const TextStyle(
+                                      color: Color(0xFF4361EE),
+                                      fontWeight: FontWeight.w600,
+                                    ),
                                   ),
                                 ),
                               ],
@@ -328,31 +403,6 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildToggleTab(String label, bool selected, VoidCallback onTap) {
-    return Expanded(
-      child: GestureDetector(
-        onTap: onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(vertical: 10),
-          decoration: BoxDecoration(
-            color: selected ? const Color(0xFF4361EE) : Colors.transparent,
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Text(
-            label,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontWeight: FontWeight.w600,
-              fontSize: 13,
-              color: selected ? Colors.white : const Color(0xFF6B7A9D),
-            ),
-          ),
-        ),
       ),
     );
   }

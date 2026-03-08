@@ -21,6 +21,7 @@ class _ClientFormScreenState extends State<ClientFormScreen> {
   final _dealerTypeController = TextEditingController();
   final _specializationController = TextEditingController();
   final _gstNumberController = TextEditingController();
+  final _passwordController = TextEditingController(); // NEW
 
   bool _isSubmitting = false;
 
@@ -48,6 +49,7 @@ class _ClientFormScreenState extends State<ClientFormScreen> {
     _dealerTypeController.dispose();
     _specializationController.dispose();
     _gstNumberController.dispose();
+    _passwordController.dispose();
     super.dispose();
   }
 
@@ -57,8 +59,8 @@ class _ClientFormScreenState extends State<ClientFormScreen> {
   setState(() => _isSubmitting = true);
 
   try {
-    // ⭐ MAP FORM FIELDS → BACKEND FIELDS
     final body = {
+      "code": _customerCodeController.text.trim(),
       "name": _customerNameController.text.trim(),
       "specialization": _specializationController.text.trim(),
       "contact": _contactController.text.trim(),
@@ -66,6 +68,8 @@ class _ClientFormScreenState extends State<ClientFormScreen> {
     };
 
     if (widget.client == null) {
+      body["password"] = _passwordController.text.trim();
+    }
       // CREATE
       await ApiClient.post('/clients', body);
     } else {
@@ -199,7 +203,25 @@ class _ClientFormScreenState extends State<ClientFormScreen> {
                     return null;
                   },
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 12),
+                
+                // Password (Only when adding)
+                if (!isEdit) ...[
+                  TextFormField(
+                    controller: _passwordController,
+                    decoration: const InputDecoration(labelText: 'Password (Required for Login)'),
+                    obscureText: true,
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return 'Password is required to create a client';
+                      }
+                      if (value.length < 6) return 'Password must be at least 6 characters';
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 24),
+                ],
+                if (isEdit) const SizedBox(height: 24),
                 
                 // Submit Button
                 SizedBox(
