@@ -139,7 +139,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
                         final name = product['name']?.toString() ?? '';
                         final price = product['price']?.toString() ?? '';
                         final quantity = product['quantity']?.toString() ?? '';
-                        final isLowStock = int.tryParse(quantity) ?? 0 < 10;
+                        final isLowStock = (int.tryParse(quantity) ?? 0) < 10;
 
                         return Card(
                           elevation: 4,

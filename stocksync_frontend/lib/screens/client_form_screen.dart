@@ -21,7 +21,7 @@ class _ClientFormScreenState extends State<ClientFormScreen> {
   final _dealerTypeController = TextEditingController();
   final _specializationController = TextEditingController();
   final _gstNumberController = TextEditingController();
-  final _passwordController = TextEditingController(); // NEW
+  final _passwordController = TextEditingController();
 
   bool _isSubmitting = false;
 
@@ -30,10 +30,10 @@ class _ClientFormScreenState extends State<ClientFormScreen> {
     super.initState();
     final client = widget.client;
     if (client != null) {
-      _customerCodeController.text = client['customerCode']?.toString() ?? '';
-      _customerNameController.text = client['customerName']?.toString() ?? '';
+      _customerCodeController.text = client['code']?.toString() ?? '';
+      _customerNameController.text = client['name']?.toString() ?? '';
       _contactController.text = client['contact']?.toString() ?? '';
-      _customerAddressController.text = client['customerAddress']?.toString() ?? '';
+      _customerAddressController.text = client['address']?.toString() ?? '';
       _dealerTypeController.text = client['dealerType']?.toString() ?? '';
       _specializationController.text = client['specialization']?.toString() ?? '';
       _gstNumberController.text = client['gstNumber']?.toString() ?? '';
@@ -54,40 +54,37 @@ class _ClientFormScreenState extends State<ClientFormScreen> {
   }
 
   Future<void> _submit() async {
-  if (!_formKey.currentState!.validate()) return;
+    if (!_formKey.currentState!.validate()) return;
 
-  setState(() => _isSubmitting = true);
+    setState(() => _isSubmitting = true);
 
-  try {
-    final body = {
-      "code": _customerCodeController.text.trim(),
-      "name": _customerNameController.text.trim(),
-      "specialization": _specializationController.text.trim(),
-      "contact": _contactController.text.trim(),
-      "address": _customerAddressController.text.trim(),
-    };
+    try {
+      final body = {
+        "code": _customerCodeController.text.trim(),
+        "name": _customerNameController.text.trim(),
+        "specialization": _specializationController.text.trim(),
+        "contact": _contactController.text.trim(),
+        "address": _customerAddressController.text.trim(),
+      };
 
-    if (widget.client == null) {
-      body["password"] = _passwordController.text.trim();
+      if (widget.client == null) {
+        body["password"] = _passwordController.text.trim();
+        await ApiClient.post('/clients', body);
+      } else {
+        final id = widget.client!['_id'].toString();
+        await ApiClient.put('/clients/$id', body);
+      }
+
+      if (!mounted) return;
+      Navigator.of(context).pop(true);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(e.toString())));
+    } finally {
+      if (mounted) setState(() => _isSubmitting = false);
     }
-      // CREATE
-      await ApiClient.post('/clients', body);
-    } else {
-      // UPDATE
-      final id = widget.client!['_id'].toString();
-      await ApiClient.put('/clients/$id', body);
-    }
-
-    if (!mounted) return;
-    Navigator.of(context).pop(true);
-  } catch (e) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(e.toString())));
-  } finally {
-    if (mounted) setState(() => _isSubmitting = false);
   }
-}
 
   @override
   Widget build(BuildContext context) {
