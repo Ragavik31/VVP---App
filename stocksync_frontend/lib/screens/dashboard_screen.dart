@@ -14,7 +14,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
   bool _isLoading = false;
   List<dynamic> _recentVaccines = [];
   List<dynamic> _recentOrders = [];
+  int _totalProductCount = 0;
   String? _error;
+  final Set<int> _expandedOrders = {};
 
   @override
   void initState() {
@@ -49,7 +51,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
         vaccinesList = vaccinesResponse;
       }
       if (!mounted) return;
-      setState(() => _recentVaccines = vaccinesList.take(5).toList());
+      setState(() {
+        _totalProductCount = vaccinesList.length; // ← full count
+        _recentVaccines = vaccinesList.take(5).toList();
+      });
       await _loadOrders();
     } catch (e) {
       if (!mounted) return;
@@ -165,7 +170,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   Row(
                     children: [
                       _statChip(Icons.inventory_2_rounded,
-                          '${_recentVaccines.length}', 'Products'),
+                          '$_totalProductCount', 'Products'),
                       const SizedBox(width: 12),
                       _statChip(Icons.receipt_long_rounded,
                           '${_recentOrders.length}', 'Orders'),
@@ -304,25 +309,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
               )
             else
-              ..._recentOrders.map((order) {
-                final o = order as Map<String, dynamic>;
+              ..._recentOrders.asMap().entries.map((entry) {
+                final idx = entry.key;
+                final o = entry.value as Map<String, dynamic>;
                 final clientName = o['clientName'] ?? 'Unknown';
                 final totalPrice = o['totalPrice'] ?? 0;
                 final status = o['status'] ?? 'pending';
                 final items = o['items'] as List? ?? [];
                 final createdAt = o['createdAt'];
-
-                String summary = '';
-                if (items.isNotEmpty) {
-                  if (items.length == 1) {
-                    summary = '${items[0]['vaccineName']} — ${items[0]['quantity']} units';
-                  } else {
-                    final qty = items.fold<int>(0, (s, i) => s + (i['quantity'] as int));
-                    summary = '${items.length} items — $qty units';
-                  }
-                } else {
-                  summary = 'Order #${o['_id']?.toString().substring(0, 8) ?? '—'}';
-                }
+                final isExpanded = _expandedOrders.contains(idx);
 
                 String date = '';
                 String timeStr = '';
@@ -340,58 +335,162 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
                 final statusData = _statusStyle(status);
 
-                return Container(
-                  margin: const EdgeInsets.only(bottom: 10),
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF0F4FF),
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                return GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      if (isExpanded) {
+                        _expandedOrders.remove(idx);
+                      } else {
+                        _expandedOrders.add(idx);
+                      }
+                    });
+                  },
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 250),
+                    margin: const EdgeInsets.only(bottom: 10),
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF0F4FF),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // ── Always visible: Doctor name + status ──
+                        Row(
                           children: [
-                            Text(summary,
-                                style: const TextStyle(
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 14,
-                                    color: Color(0xFF0D1B2A))),
-                            const SizedBox(height: 4),
-                            Tooltip(
-                              message: timeStr.isNotEmpty ? "Ordered at $timeStr" : "",
-                              triggerMode: TooltipTriggerMode.tap,
-                              child: Text('$clientName  •  $date',
+                            const Icon(Icons.person_rounded,
+                                size: 16, color: Color(0xFF4361EE)),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(clientName,
                                   style: const TextStyle(
-                                      fontSize: 12, color: Color(0xFF6B7A9D))),
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 14,
+                                      color: Color(0xFF0D1B2A))),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: statusData.$2,
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Text(status,
+                                  style: TextStyle(
+                                      fontSize: 11,
+                                      color: statusData.$1,
+                                      fontWeight: FontWeight.w600)),
+                            ),
+                            const SizedBox(width: 4),
+                            AnimatedRotation(
+                              turns: isExpanded ? 0.5 : 0,
+                              duration: const Duration(milliseconds: 200),
+                              child: const Icon(
+                                  Icons.keyboard_arrow_down_rounded,
+                                  color: Color(0xFF6B7A9D), size: 18),
                             ),
                           ],
                         ),
-                      ),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          Text('₹$totalPrice',
-                              style: const TextStyle(
-                                  fontWeight: FontWeight.w700,
-                                  color: Color(0xFF4361EE))),
-                          const SizedBox(height: 4),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                            decoration: BoxDecoration(
-                              color: statusData.$2,
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Text(status,
-                                style: TextStyle(
-                                    fontSize: 11,
-                                    color: statusData.$1,
-                                    fontWeight: FontWeight.w600)),
+
+                        // ── Expanded details ──
+                        if (isExpanded) ...[
+                          const SizedBox(height: 10),
+                          const Divider(height: 1, color: Color(0xFFD6DEFF)),
+                          const SizedBox(height: 10),
+
+                          // Items list
+                          ...items.map((item) {
+                            final name = item['vaccineName'] ?? item['productName'] ?? 'Product';
+                            final qty = item['quantity'] ?? 0;
+                            final price = item['sellingPrice'] ?? item['unitPrice'] ?? 0;
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 6),
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.fiber_manual_record,
+                                      size: 6, color: Color(0xFF4361EE)),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(name,
+                                        style: const TextStyle(
+                                            fontSize: 13,
+                                            color: Color(0xFF0D1B2A))),
+                                  ),
+                                  Text('$qty × ₹$price',
+                                      style: const TextStyle(
+                                          fontSize: 12,
+                                          color: Color(0xFF6B7A9D))),
+                                ],
+                              ),
+                            );
+                          }),
+
+                          const SizedBox(height: 6),
+                          // Date, Time, Payment
+                          Wrap(
+                            spacing: 10,
+                            runSpacing: 4,
+                            crossAxisAlignment: WrapCrossAlignment.center,
+                            children: [
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(Icons.access_time_rounded,
+                                      size: 13, color: Color(0xFF6B7A9D)),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    date.isNotEmpty
+                                        ? (timeStr.isNotEmpty
+                                            ? '$date  $timeStr'
+                                            : date)
+                                        : '—',
+                                    style: const TextStyle(
+                                        fontSize: 12, color: Color(0xFF6B7A9D)),
+                                  ),
+                                ],
+                              ),
+                              if ((o['paymentMethod'] ?? '')
+                                  .toString()
+                                  .isNotEmpty)
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(Icons.payment_rounded,
+                                        size: 13, color: Color(0xFF6B7A9D)),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      (o['paymentMethod'] ?? '')
+                                          .toString()
+                                          .toUpperCase(),
+                                      style: const TextStyle(
+                                          fontSize: 12,
+                                          color: Color(0xFF6B7A9D)),
+                                    ),
+                                  ],
+                                ),
+                            ],
+                          ),
+
+                          const SizedBox(height: 6),
+                          // Total
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              const Text('Total: ',
+                                  style: TextStyle(
+                                      fontSize: 13,
+                                      color: Color(0xFF6B7A9D))),
+                              Text('₹$totalPrice',
+                                  style: const TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w800,
+                                      color: Color(0xFF4361EE))),
+                            ],
                           ),
                         ],
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 );
               }),

@@ -9,6 +9,7 @@ const {
   assignOrder,
   acceptOrder,
   getPendingOrders,
+  getDueSoonOrders,
 } = require('../controllers/order.controller');
 
 const { authenticate, authorize } = require('../middlewares/auth.middleware');
@@ -17,6 +18,7 @@ router.use(authenticate);
 
 // 🟢 CLIENT
 router.post('/', authorize('client'), createOrder);
+router.get('/due-soon', authorize('client'), getDueSoonOrders);
 router.get('/', getOrders);
 
 // 🟢 ADMIN

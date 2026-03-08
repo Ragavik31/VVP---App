@@ -289,35 +289,50 @@ class _ClientMyOrdersScreenState extends State<ClientMyOrdersScreen> {
 
               const Divider(height: 16, indent: 16, endIndent: 16),
 
-              // Footer: payment + total
+              // Footer: payment + due date + total
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
-                child: Row(
+                child: Column(
                   children: [
-                    if (paymentMethod.isNotEmpty)
-                      Row(
-                        children: [
-                          Icon(
-                            paymentMethod == 'online'
-                                ? Icons.payment_rounded
-                                : Icons.money_rounded,
-                            size: 15,
-                            color: const Color(0xFF6B7A9D),
+                    // Payment method + due date row
+                    Row(
+                      children: [
+                        if (paymentMethod.isNotEmpty)
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                paymentMethod == 'online'
+                                    ? Icons.payment_rounded
+                                    : Icons.money_rounded,
+                                size: 15,
+                                color: const Color(0xFF6B7A9D),
+                              ),
+                              const SizedBox(width: 4),
+                              Text(paymentMethod.toUpperCase(),
+                                  style: const TextStyle(
+                                      fontSize: 12, color: Color(0xFF6B7A9D))),
+                            ],
                           ),
-                          const SizedBox(width: 4),
-                          Text(paymentMethod.toUpperCase(),
-                              style: const TextStyle(
-                                  fontSize: 12, color: Color(0xFF6B7A9D))),
-                        ],
-                      ),
-                    const Spacer(),
-                    const Text('Total: ',
-                        style: TextStyle(fontSize: 14, color: Color(0xFF6B7A9D))),
-                    Text('₹$totalPrice',
-                        style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w800,
-                            color: Color(0xFF4361EE))),
+                        const SizedBox(width: 10),
+                        _buildPaymentBadge(o),
+                        const Spacer(),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    // Total row
+                    Row(
+                      children: [
+                        const Text('Total: ',
+                            style: TextStyle(fontSize: 14, color: Color(0xFF6B7A9D))),
+                        const Spacer(),
+                        Text('₹$totalPrice',
+                            style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w800,
+                                color: Color(0xFF4361EE))),
+                      ],
+                    ),
                   ],
                 ),
               ),
@@ -325,6 +340,103 @@ class _ClientMyOrdersScreenState extends State<ClientMyOrdersScreen> {
           ],
         ),
       ),
+    );
+  }
+  Widget _buildPaymentBadge(Map<String, dynamic> o) {
+    final paymentMethod = (o['paymentMethod'] ?? '').toString();
+    final paymentStatus = (o['paymentStatus'] ?? '').toString();
+    final dueDateStr = (o['paymentDueDate'] ?? '').toString();
+
+    if (paymentMethod == 'online' || paymentStatus == 'paid') {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+        decoration: BoxDecoration(
+          color: const Color(0xFFE6FFF9),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: const Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.check_circle_rounded, size: 12, color: Color(0xFF06D6A0)),
+            SizedBox(width: 4),
+            Text('PAID',
+                style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF06D6A0))),
+          ],
+        ),
+      );
+    }
+
+    // Cash: calculate days remaining
+    if (dueDateStr.isNotEmpty && dueDateStr != 'null') {
+      try {
+        final dueDate = DateTime.parse(dueDateStr).toLocal();
+        final now = DateTime.now();
+        final daysLeft = dueDate.difference(now).inDays;
+
+        if (daysLeft < 0) {
+          return Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFE8EC),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.warning_amber_rounded, size: 12, color: Color(0xFFEF233C)),
+                SizedBox(width: 4),
+                Text('OVERDUE',
+                    style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFFEF233C))),
+              ],
+            ),
+          );
+        }
+
+        final isUrgent = daysLeft <= 7;
+        final badgeColor = isUrgent ? const Color(0xFFFFB703) : const Color(0xFF4361EE);
+        final bgColor = isUrgent ? const Color(0xFFFFF8E1) : const Color(0xFFEEF2FF);
+
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+          decoration: BoxDecoration(
+            color: bgColor,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(isUrgent ? Icons.timer_rounded : Icons.schedule_rounded,
+                  size: 12, color: badgeColor),
+              const SizedBox(width: 4),
+              Text('Due in $daysLeft days',
+                  style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: badgeColor)),
+            ],
+          ),
+        );
+      } catch (_) {}
+    }
+
+    // Fallback: unpaid with no due date
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFF8E1),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: const Text('UNPAID',
+          style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFFFFB703))),
     );
   }
 }

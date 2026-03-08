@@ -98,6 +98,20 @@ const orderSchema = new mongoose.Schema(
       type: String,
       trim: true,
     },
+    paymentMethod: {
+      type: String,
+      enum: ['cash', 'online'],
+      default: 'cash',
+    },
+    paymentDueDate: {
+      type: Date,
+      default: null,
+    },
+    paymentStatus: {
+      type: String,
+      enum: ['paid', 'unpaid', 'overdue'],
+      default: 'unpaid',
+    },
   },
   {
     timestamps: true,

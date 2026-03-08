@@ -14,6 +14,7 @@ class ClientDashboardScreen extends StatefulWidget {
 class _ClientDashboardScreenState extends State<ClientDashboardScreen> {
   bool _isLoading = false;
   List<dynamic> _recentOrders = [];
+  List<dynamic> _dueSoonOrders = [];
   double _totalSpent = 0.0;
   String? _error;
 
@@ -47,6 +48,16 @@ class _ClientDashboardScreenState extends State<ClientDashboardScreen> {
         _recentOrders = orders.take(5).toList();
         _totalSpent = total;
       });
+      // Fetch due-soon cash orders
+      try {
+        final dueResp = await ApiClient.get('/orders/due-soon');
+        List<dynamic> dueOrders = [];
+        if (dueResp is Map<String, dynamic>) {
+          final data = dueResp['data'];
+          if (data is List) dueOrders = data;
+        }
+        if (mounted) setState(() => _dueSoonOrders = dueOrders);
+      } catch (_) {}
     } catch (e) {
       if (!mounted) return;
       setState(() => _error = e.toString());
@@ -129,32 +140,13 @@ class _ClientDashboardScreenState extends State<ClientDashboardScreen> {
                         ),
                       ),
                       const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          '${_getGreeting()}, ${user?.name?.split(' ')[0] ?? ''} 👋',
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w700,
-                            color: Colors.white,
-                          ),
+                      Text(
+                        '${_getGreeting()} 👋',
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
                         ),
-                      ),
-                      IconButton(
-                        onPressed: _logout,
-                        icon: Container(
-                          padding: const EdgeInsets.all(6),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.15),
-                            borderRadius: BorderRadius.circular(10),
-                            border: Border.all(color: Colors.white.withOpacity(0.3)),
-                          ),
-                          child: const Icon(
-                            Icons.logout_rounded,
-                            color: Colors.white,
-                            size: 18,
-                          ),
-                        ),
-                        tooltip: 'Logout',
                       ),
                     ],
                   ),
@@ -241,6 +233,10 @@ class _ClientDashboardScreenState extends State<ClientDashboardScreen> {
                           ],
                         ),
                       ),
+
+                    // Payment Due Alert
+                    if (_dueSoonOrders.isNotEmpty)
+                      _buildDueAlertCard(),
 
                     // Last 5 orders card
                     Container(
@@ -427,5 +423,115 @@ class _ClientDashboardScreenState extends State<ClientDashboardScreen> {
       default:
         return (const Color(0xFFFFB703), const Color(0xFFFFF8E1));
     }
+  }
+
+  Widget _buildDueAlertCard() {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFFFB703).withOpacity(0.3)),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFFFFB703).withOpacity(0.1),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Row(
+              children: [
+                Icon(Icons.warning_amber_rounded,
+                    size: 20, color: Color(0xFFFFB703)),
+                SizedBox(width: 8),
+                Text('Payment Due',
+                    style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF0D1B2A))),
+              ],
+            ),
+            const SizedBox(height: 12),
+            ..._dueSoonOrders.map((order) {
+              final o = order as Map<String, dynamic>;
+              final dueDateStr = (o['paymentDueDate'] ?? '').toString();
+              final totalPrice = o['totalPrice'] ?? 0;
+              final paymentStatus = (o['paymentStatus'] ?? '').toString();
+
+              int daysLeft = 0;
+              bool isOverdue = paymentStatus == 'overdue';
+              if (dueDateStr.isNotEmpty && dueDateStr != 'null') {
+                try {
+                  final dueDate = DateTime.parse(dueDateStr).toLocal();
+                  daysLeft = dueDate.difference(DateTime.now()).inDays;
+                  if (daysLeft < 0) isOverdue = true;
+                } catch (_) {}
+              }
+
+              return Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: isOverdue
+                      ? const Color(0xFFFFE8EC)
+                      : const Color(0xFFFFF8E1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      isOverdue
+                          ? Icons.error_rounded
+                          : Icons.timer_rounded,
+                      size: 16,
+                      color: isOverdue
+                          ? const Color(0xFFEF233C)
+                          : const Color(0xFFFFB703),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        '₹$totalPrice',
+                        style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF0D1B2A)),
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: isOverdue
+                            ? const Color(0xFFEF233C)
+                            : daysLeft <= 7
+                                ? const Color(0xFFFFB703)
+                                : const Color(0xFF4361EE),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text(
+                        isOverdue
+                            ? 'OVERDUE'
+                            : 'Due in $daysLeft days',
+                        style: const TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }),
+          ],
+        ),
+      ),
+    );
   }
 }

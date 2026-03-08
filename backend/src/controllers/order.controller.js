@@ -56,6 +56,12 @@ const createOrder = async (req, res) => {
       totalPrice += item.itemTotal;
     }
 
+    const paymentMethod = req.body.paymentMethod || 'cash';
+    const paymentDueDate = paymentMethod === 'cash'
+      ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+      : null;
+    const paymentStatus = paymentMethod === 'online' ? 'paid' : 'unpaid';
+
     const order = await Order.create({
       items,
       totalQuantity,
@@ -66,7 +72,10 @@ const createOrder = async (req, res) => {
       clientContact,
       clientCode,
       notes: req.body.notes || '',
-      status: 'pending'
+      status: 'pending',
+      paymentMethod,
+      paymentDueDate,
+      paymentStatus,
     });
 
     // 🔌 SOCKET EVENTS
@@ -246,6 +255,39 @@ const getPendingOrders = async (req, res) => {
 };
 
 // ======================================================
+// GET DUE-SOON CASH ORDERS (CLIENT)
+// ======================================================
+const getDueSoonOrders = async (req, res) => {
+  try {
+    const now = new Date();
+    const sevenDaysFromNow = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+
+    // Also mark overdue orders
+    await Order.updateMany(
+      {
+        paymentMethod: 'cash',
+        paymentStatus: 'unpaid',
+        paymentDueDate: { $lt: now },
+      },
+      { $set: { paymentStatus: 'overdue' } }
+    );
+
+    const filter = {
+      clientId: req.user._id,
+      paymentMethod: 'cash',
+      paymentStatus: { $in: ['unpaid', 'overdue'] },
+      paymentDueDate: { $ne: null },
+    };
+
+    const orders = await Order.find(filter).sort({ paymentDueDate: 1 });
+    res.json({ success: true, data: orders });
+  } catch (error) {
+    console.error('Error fetching due-soon orders:', error);
+    res.status(500).json({ success: false, message: 'Failed to fetch due-soon orders' });
+  }
+};
+
+// ======================================================
 module.exports = {
   createOrder,
   getOrders,
@@ -253,6 +295,6 @@ module.exports = {
   deleteOrder,
   assignOrder,
   acceptOrder,
-  getPendingOrders,   // ⭐ THIS WAS MISSING
+  getPendingOrders,
+  getDueSoonOrders,
 };
-

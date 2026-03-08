@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../auth/auth_provider.dart';
 import 'client_dashboard_screen.dart';
 import 'client_my_orders_screen.dart';
 import 'client_order_placement_screen.dart';
@@ -54,6 +56,34 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
             ),
           ],
         ),
+        actions: [
+          if (_index == 0)
+            Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: GestureDetector(
+                onTap: () => Provider.of<AuthProvider>(context, listen: false).logout(),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.logout_rounded, color: Colors.white, size: 16),
+                      SizedBox(width: 6),
+                      Text('Logout',
+                          style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600)),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+        ],
       ),
       body: IndexedStack(index: _index, children: pages),
       bottomNavigationBar: Container(

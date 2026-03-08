@@ -180,7 +180,10 @@ class _AdminOrderManagementScreenState
                 style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: Color(0xFF0D1B2A))),
             const SizedBox(height: 12),
             _detailRow(Icons.person_rounded, 'Client', order['clientName'] ?? 'Unknown'),
-            _detailRow(Icons.payments_rounded, 'Payment', order['paymentMethod'] ?? '—'),
+            _detailRow(Icons.payments_rounded, 'Payment', (order['paymentMethod'] ?? '—').toString().toUpperCase()),
+            _detailRow(Icons.info_outline_rounded, 'Payment Status', (order['paymentStatus'] ?? '—').toString().toUpperCase()),
+            if (order['paymentMethod'] == 'cash' && order['paymentDueDate'] != null)
+              _detailRow(Icons.event_rounded, 'Due Date', _formatDueDate(order['paymentDueDate'])),
             _detailRow(Icons.currency_rupee_rounded, 'Total', '₹${order['totalPrice']}'),
             if (order['assignedStaffName'] != null)
               _detailRow(Icons.person_pin_rounded, 'Assigned To', order['assignedStaffName']),
@@ -308,6 +311,48 @@ class _AdminOrderManagementScreenState
                                     style: const TextStyle(
                                         fontWeight: FontWeight.w700,
                                         color: Color(0xFF4361EE), fontSize: 14)),
+                                const SizedBox(height: 2),
+                                Row(
+                                  children: [
+                                    Icon(
+                                      order['paymentMethod'] == 'online'
+                                          ? Icons.payment_rounded
+                                          : Icons.money_rounded,
+                                      size: 12, color: const Color(0xFF6B7A9D),
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      (order['paymentMethod'] ?? 'cash').toString().toUpperCase(),
+                                      style: const TextStyle(fontSize: 11, color: Color(0xFF6B7A9D)),
+                                    ),
+                                    if (order['paymentStatus'] != null) ...[
+                                      const SizedBox(width: 8),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                                        decoration: BoxDecoration(
+                                          color: order['paymentStatus'] == 'paid'
+                                              ? const Color(0xFFE6FFF9)
+                                              : order['paymentStatus'] == 'overdue'
+                                                  ? const Color(0xFFFFE8EC)
+                                                  : const Color(0xFFFFF8E1),
+                                          borderRadius: BorderRadius.circular(8),
+                                        ),
+                                        child: Text(
+                                          (order['paymentStatus'] ?? '').toString().toUpperCase(),
+                                          style: TextStyle(
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.w700,
+                                            color: order['paymentStatus'] == 'paid'
+                                                ? const Color(0xFF06D6A0)
+                                                : order['paymentStatus'] == 'overdue'
+                                                    ? const Color(0xFFEF233C)
+                                                    : const Color(0xFFFFB703),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ],
+                                ),
                                 if (assigned != null) ...
                                   [
                                     const SizedBox(height: 2),
@@ -374,5 +419,17 @@ class _AdminOrderManagementScreenState
       SocketService().off('order:deleted');
     } catch (_) {}
     super.dispose();
+  }
+
+  String _formatDueDate(dynamic dueDateStr) {
+    try {
+      final dueDate = DateTime.parse(dueDateStr.toString()).toLocal();
+      final daysLeft = dueDate.difference(DateTime.now()).inDays;
+      final dateStr = '${dueDate.day}/${dueDate.month}/${dueDate.year}';
+      if (daysLeft < 0) return '$dateStr (OVERDUE)';
+      return '$dateStr ($daysLeft days left)';
+    } catch (_) {
+      return dueDateStr.toString();
+    }
   }
 }
