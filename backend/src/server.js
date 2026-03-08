@@ -7,7 +7,7 @@ const http = require('http');
 const { Server } = require('socket.io');
 const socketUtil = require('./utils/socket');
 
-const port = process.env.PORT || 5000;
+const PORT = process.env.PORT;
 
 connectDB()
   .then(() => {
@@ -30,9 +30,8 @@ connectDB()
     // expose io through util for controllers
     socketUtil.setIO(io);
 
-    server.listen(port, '0.0.0.0', () => {
-      console.log(`Server running on http://0.0.0.0:${port}`);
-      console.log(`Access from phone using: http://10.76.214.48:${port}`);
+    server.listen(PORT, '0.0.0.0', () => {
+        console.log(`Server running on port ${PORT}`);
     });
 
   })
