@@ -1,4 +1,5 @@
 const Product = require('../models/product.model');
+const socketUtil = require('../utils/socket');
 
 const createProduct = async (req, res) => {
   try {
@@ -11,6 +12,10 @@ const createProduct = async (req, res) => {
       mrp,
       quantity
     });
+
+    try {
+      socketUtil.getIO()?.emit('product:updated', product);
+    } catch (e) { }
 
     res.status(201).json({ success: true, data: product });
   } catch (error) {
@@ -60,6 +65,10 @@ const updateProduct = async (req, res) => {
       { new: true }
     );
 
+    try {
+      socketUtil.getIO()?.emit('product:updated', product);
+    } catch (e) { }
+
     res.json({ success: true, data: product });
   } catch (error) {
     res.status(400).json({ success: false, message: error.message });
@@ -86,6 +95,10 @@ const adjustStock = async (req, res) => {
     product.quantity = newStock;
     await product.save();
 
+    try {
+      socketUtil.getIO()?.emit('product:updated', product);
+    } catch (e) { }
+
     res.json({ success: true, data: product });
   } catch (error) {
     res.status(400).json({ success: false, message: 'Failed to adjust stock', error: error.message });
@@ -98,6 +111,10 @@ const deleteProduct = async (req, res) => {
     if (!product) {
       return res.status(404).json({ success: false, message: 'Product not found' });
     }
+
+    try {
+      socketUtil.getIO()?.emit('product:deleted', { id: req.params.id });
+    } catch (e) { }
 
     res.json({ success: true, message: 'Product deleted' });
   } catch (error) {

@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../providers/cart_provider.dart';
 import '../api_client.dart';
 import '../auth/auth_provider.dart';
+import '../services/socket_service.dart';
 import 'vaccine_form_page.dart';
 
 class VaccineListScreen extends StatefulWidget {
@@ -22,6 +23,15 @@ class _VaccineListScreenState extends State<VaccineListScreen> {
     super.initState();
     _load();
     _searchCtrl.addListener(_filter);
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final token = Provider.of<AuthProvider>(context, listen: false).token;
+      if (token != null) {
+        SocketService().connect(token: token);
+        SocketService().on('product:updated', (_) => _load());
+        SocketService().on('product:deleted', (_) => _load());
+      }
+    });
   }
 
   void _filter() {
@@ -309,17 +319,7 @@ class _VaccineListScreenState extends State<VaccineListScreen> {
           ),
         ],
       ),
-      floatingActionButton: isAdmin
-          ? FloatingActionButton.extended(
-              onPressed: () async {
-                await Navigator.push(context,
-                    MaterialPageRoute(builder: (_) => const VaccineFormScreen()));
-                _load();
-              },
-              icon: const Icon(Icons.add_rounded),
-              label: const Text('Add Product'),
-            )
-          : null,
+      ),
     );
   }
 
@@ -341,6 +341,10 @@ class _VaccineListScreenState extends State<VaccineListScreen> {
 
   @override
   void dispose() {
+    try {
+      SocketService().off('product:updated');
+      SocketService().off('product:deleted');
+    } catch (_) {}
     _searchCtrl.dispose();
     super.dispose();
   }

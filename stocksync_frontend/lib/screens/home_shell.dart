@@ -7,6 +7,7 @@ import 'client_list_screen.dart';
 import 'dashboard_screen.dart';
 import 'sales_billing_placeholder_screen.dart';
 import 'staff_order_management_screen.dart';
+import 'vaccine_form_page.dart';
 import 'vaccine_list_screen.dart';
 
 class HomeShell extends StatefulWidget {
@@ -98,6 +99,15 @@ class _HomeShellState extends State<HomeShell> {
               onPressed: () async {
                 await Navigator.push(context,
                     MaterialPageRoute(builder: (_) => const ClientFormScreen()));
+              },
+            ),
+          if (_currentIndex == 3 && auth.currentUser?.role == 'admin')
+            IconButton(
+              icon: const Icon(Icons.add_box_rounded, color: Colors.white),
+              tooltip: 'Add Product',
+              onPressed: () async {
+                await Navigator.push(context,
+                    MaterialPageRoute(builder: (_) => const VaccineFormScreen()));
               },
             ),
           if (_currentIndex == 0)
