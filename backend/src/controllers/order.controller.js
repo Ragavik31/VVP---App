@@ -125,8 +125,12 @@ const assignOrder = async (req, res) => {
     const { id } = req.params;
     const { staffId, staffName } = req.body;
 
+    if (!staffId || !staffName) {
+      return res.status(400).json({ success: false, message: 'staffId and staffName are required' });
+    }
+
     const order = await Order.findById(id);
-    if (!order) return res.status(404).json({ success: false });
+    if (!order) return res.status(404).json({ success: false, message: 'Order not found' });
 
     order.assignedTo = staffId;
     order.assignedStaffName = staffName;
@@ -136,8 +140,9 @@ const assignOrder = async (req, res) => {
     socketUtil.getIO().emit('order:assigned', order);
     res.json({ success: true, data: order });
 
-  } catch {
-    res.status(400).json({ success: false });
+  } catch (err) {
+    console.error('assignOrder error:', err.message, err);
+    res.status(400).json({ success: false, message: err.message });
   }
 };
 

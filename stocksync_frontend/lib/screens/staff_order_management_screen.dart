@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:intl/intl.dart';
 
 import '../api_client.dart';
 import '../auth/auth_provider.dart';
@@ -107,6 +108,14 @@ class _StaffOrderManagementScreenState
     final items = order['items'] as List? ?? [];
     final statusData = _statusStyle(order['status'] ?? '');
 
+    String dateFormatted = 'Unknown Date';
+    if (order['createdAt'] != null || order['orderDate'] != null) {
+      try {
+        final d = DateTime.parse((order['createdAt'] ?? order['orderDate']).toString()).toLocal();
+        dateFormatted = DateFormat('dd MMM yyyy, hh:mm a').format(d);
+      } catch (_) {}
+    }
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -148,26 +157,33 @@ class _StaffOrderManagementScreenState
                 ),
               ],
             ),
+            const SizedBox(height: 4),
+            Text(dateFormatted, style: const TextStyle(fontSize: 13, color: Color(0xFF6B7A9D))),
             const SizedBox(height: 16),
-            _detailRow(Icons.person_rounded, 'Client', order['clientName'] ?? 'Unknown'),
-            _detailRow(Icons.payments_rounded, 'Payment', order['paymentMethod'] ?? '—'),
-            _detailRow(Icons.currency_rupee_rounded, 'Total', '₹${order['totalPrice']}'),
+            _detailRow(Icons.person_rounded, 'Client', order['clientName']?.toString() ?? 'Unknown'),
+            _detailRow(Icons.payments_rounded, 'Payment', (order['paymentMethod']?.toString() ?? '—').toUpperCase()),
+            _detailRow(Icons.currency_rupee_rounded, 'Total', '₹${order['totalPrice'] ?? 0}'),
             const Divider(height: 24),
             const Text('Items', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15, color: Color(0xFF0D1B2A))),
             const SizedBox(height: 8),
-            ...items.map((item) => Padding(
-              padding: const EdgeInsets.symmetric(vertical: 4),
-              child: Row(
-                children: [
-                  const Icon(Icons.fiber_manual_record, size: 8, color: Color(0xFF4361EE)),
-                  const SizedBox(width: 8),
-                  Expanded(child: Text('${item['vaccineName']}  ×${item['quantity']}',
-                      style: const TextStyle(color: Color(0xFF0D1B2A)))),
-                  Text('₹${item['itemTotal']}',
-                      style: const TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF4361EE))),
-                ],
-              ),
-            )),
+            ...items.map((item) {
+              final iName = item['vaccineName']?.toString() ?? item['productName']?.toString() ?? 'Unknown Item';
+              final iQty = item['quantity']?.toString() ?? '0';
+              final iTot = item['itemTotal']?.toString() ?? '0';
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Row(
+                  children: [
+                    const Icon(Icons.fiber_manual_record, size: 8, color: Color(0xFF4361EE)),
+                    const SizedBox(width: 8),
+                    Expanded(child: Text('$iName  ×$iQty',
+                        style: const TextStyle(color: Color(0xFF0D1B2A)))),
+                    Text('₹$iTot',
+                        style: const TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF4361EE))),
+                  ],
+                ),
+              );
+            }),
             const SizedBox(height: 20),
           ],
         ),
