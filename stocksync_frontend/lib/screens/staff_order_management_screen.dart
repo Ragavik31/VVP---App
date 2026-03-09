@@ -141,9 +141,9 @@ class _StaffOrderManagementScreenState
                   decoration: BoxDecoration(
                       color: statusData['bg'] as Color,
                       borderRadius: BorderRadius.circular(20)),
-                  child: Text(statusData['label'] as String,
+                  child: Text(statusData['label']?.toString() ?? '',
                       style: TextStyle(
-                          color: statusData['color'] as Color,
+                          color: (statusData['color'] as Color?) ?? const Color(0xFF6B7A9D),
                           fontWeight: FontWeight.w600, fontSize: 12)),
                 ),
               ],
@@ -261,7 +261,7 @@ class _StaffOrderManagementScreenState
                                     ),
                                     child: Icon(
                                       isDelivered ? Icons.check_circle_rounded : Icons.local_shipping_rounded,
-                                      color: statusData['color'] as Color, size: 22,
+                                      color: (statusData['color'] as Color?) ?? const Color(0xFF6B7A9D), size: 22,
                                     ),
                                   ),
                                   const SizedBox(width: 12),
@@ -282,10 +282,10 @@ class _StaffOrderManagementScreenState
                                             color: statusData['bg'] as Color,
                                             borderRadius: BorderRadius.circular(20),
                                           ),
-                                          child: Text(statusData['label'] as String,
+                                          child: Text(statusData['label']?.toString() ?? '',
                                               style: TextStyle(
                                                   fontSize: 11,
-                                                  color: statusData['color'] as Color,
+                                                  color: (statusData['color'] as Color?) ?? const Color(0xFF6B7A9D),
                                                   fontWeight: FontWeight.w600)),
                                         ),
                                       ],

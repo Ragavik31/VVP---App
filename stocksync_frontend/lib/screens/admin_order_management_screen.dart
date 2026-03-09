@@ -144,15 +144,11 @@ class _AdminOrderManagementScreenState
                         ),
                       ),
                       onTap: () {
-                        _assignOrder(order['_id'], s['_id'], s['name'] ?? '');
+                        final oId = order['_id']?.toString() ?? '';
+                        final sId = s['_id']?.toString() ?? '';
+                        final sName = s['name']?.toString() ?? 'Staff';
+                        _assignOrder(oId, sId, sName);
                         Navigator.pop(context);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                                'Order assigned to ${s['name']}'),
-                            backgroundColor: const Color(0xFF4361EE),
-                          ),
-                        );
                       },
                     ),
                   );
