@@ -353,9 +353,8 @@ class _AdminOrderManagementScreenState
                                     ],
                                   ],
                                 ),
-                                if (assigned != null) ...
-                                  [
-                                    const SizedBox(height: 2),
+                                if (assigned != null) ...[
+                                    const SizedBox(height: 4),
                                     Row(
                                       children: [
                                         const Icon(Icons.person_pin_rounded, size: 13, color: Color(0xFF4CAF50)),
@@ -366,24 +365,43 @@ class _AdminOrderManagementScreenState
                                       ],
                                     ),
                                   ],
+                                  const SizedBox(height: 4),
+                                  // Status badge
+                                  Builder(builder: (_) {
+                                    final status = (order['status'] ?? 'pending').toString();
+                                    Color bgColor; Color txtColor; String label;
+                                    if (status == 'accepted') {
+                                      bgColor = const Color(0xFFE8F5E9); txtColor = const Color(0xFF4CAF50); label = '✔ Accepted by Staff';
+                                    } else if (status == 'assigned') {
+                                      bgColor = const Color(0xFFE8EDFF); txtColor = const Color(0xFF4361EE); label = 'Assigned';
+                                    } else {
+                                      bgColor = const Color(0xFFFFF8E1); txtColor = const Color(0xFFFFB703); label = 'Pending';
+                                    }
+                                    return Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                      decoration: BoxDecoration(color: bgColor, borderRadius: BorderRadius.circular(20)),
+                                      child: Text(label, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: txtColor)),
+                                    );
+                                  }),
                               ],
                             ),
                           ),
                           Column(
                             children: [
-                              IconButton(
-                                icon: Container(
-                                  padding: const EdgeInsets.all(6),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFF4361EE),
-                                    borderRadius: BorderRadius.circular(8),
+                              if (order['status'] != 'accepted')
+                                IconButton(
+                                  icon: Container(
+                                    padding: const EdgeInsets.all(6),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFF4361EE),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: const Icon(Icons.assignment_ind_rounded,
+                                        color: Colors.white, size: 18),
                                   ),
-                                  child: const Icon(Icons.assignment_ind_rounded,
-                                      color: Colors.white, size: 18),
+                                  onPressed: () => _showAssignDialog(order),
+                                  tooltip: 'Assign to Staff',
                                 ),
-                                onPressed: () => _showAssignDialog(order),
-                                tooltip: 'Assign to Staff',
-                              ),
                               IconButton(
                                 icon: Container(
                                   padding: const EdgeInsets.all(6),

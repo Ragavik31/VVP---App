@@ -22,7 +22,10 @@ class _HomeShellState extends State<HomeShell> {
   List<Widget> get _pages {
     final auth = Provider.of<AuthProvider>(context, listen: false);
     final isClient = auth.currentUser?.role == 'client';
-    if (isClient) return const [DashboardScreen(), VaccineListScreen()];
+    if (isClient) return [
+      DashboardScreen(onGoToProducts: () => setState(() => _currentIndex = 1)),
+      const VaccineListScreen(),
+    ];
     final isStaff = auth.currentUser?.role == 'staff';
     if (isStaff) return const [DashboardScreen(), StaffOrderManagementScreen(), VaccineListScreen()];
     return const [DashboardScreen(), AdminOrderManagementScreen(), ClientListScreen(), VaccineListScreen(), SalesBillingPlaceholderScreen()];

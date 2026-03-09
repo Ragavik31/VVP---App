@@ -5,7 +5,8 @@ import '../auth/auth_provider.dart';
 import '../services/socket_service.dart';
 
 class DashboardScreen extends StatefulWidget {
-  const DashboardScreen({super.key});
+  final VoidCallback? onGoToProducts;
+  const DashboardScreen({super.key, this.onGoToProducts});
   @override
   State<DashboardScreen> createState() => _DashboardScreenState();
 }
@@ -75,12 +76,22 @@ class _DashboardScreenState extends State<DashboardScreen> {
     try {
       final auth = Provider.of<AuthProvider>(context, listen: false);
       final isAdmin = auth.currentUser?.role == 'admin';
-      final resp = await ApiClient.get(isAdmin ? '/orders/pending?limit=5' : '/orders?limit=5');
+      final isStaff = auth.currentUser?.role == 'staff';
+      final resp = await ApiClient.get(isAdmin ? '/orders/pending?limit=20' : '/orders?limit=20');
       List<dynamic> ordersList = [];
       if (resp is Map<String, dynamic>) {
         final data = resp['data'];
         if (data is List) ordersList = data;
       } else if (resp is List) ordersList = resp;
+      // For admin/staff: sort by fewest items first
+      if (isAdmin || isStaff) {
+        ordersList.sort((a, b) {
+          final aLen = (a['items'] is List) ? (a['items'] as List).length : 0;
+          final bLen = (b['items'] is List) ? (b['items'] as List).length : 0;
+          return aLen.compareTo(bLen);
+        });
+        ordersList = ordersList.take(5).toList();
+      }
       if (!mounted) return;
       setState(() => _recentOrders = ordersList);
     } catch (e) {
@@ -204,6 +215,28 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                   style: const TextStyle(color: Color(0xFFEF233C), fontSize: 13)),
                             ),
                           ],
+                        ),
+                      ),
+                    if (isClient)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 16),
+                        child: SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            onPressed: widget.onGoToProducts,
+                            icon: const Icon(Icons.add_shopping_cart_rounded, size: 20),
+                            label: const Text('Place New Order',
+                                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF06D6A0),
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16)),
+                              elevation: 4,
+                              shadowColor: const Color(0xFF06D6A0).withOpacity(0.4),
+                            ),
+                          ),
                         ),
                       ),
                     if ((isAdmin || isClient)) _buildOrdersCard(),

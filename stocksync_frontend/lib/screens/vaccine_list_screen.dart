@@ -319,7 +319,6 @@ class _VaccineListScreenState extends State<VaccineListScreen> {
           ),
         ],
       ),
-      ),
     );
   }
 
