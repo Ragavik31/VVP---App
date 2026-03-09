@@ -59,11 +59,30 @@ class _AdminOrderManagementScreenState
   }
 
   Future<void> _assignOrder(String orderId, String staffId, String staffName) async {
-    await ApiClient.patch('/orders/$orderId/assign', {
-      'staffId': staffId,
-      'staffName': staffName,
-    });
-    _loadData();
+    try {
+      await ApiClient.patch('/orders/$orderId/assign', {
+        'staffId': staffId,
+        'staffName': staffName,
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Order assigned to $staffName ✓'),
+            backgroundColor: const Color(0xFF4361EE),
+          ),
+        );
+      }
+      _loadData();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Assign failed: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   Future<void> _deleteOrder(String orderId) async {

@@ -239,16 +239,16 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                                 const SizedBox(height: 24),
 
                                 // Username / Code
-                                _buildLabel('Username / Client Code'),
+                                _buildLabel('Username'),
                                 const SizedBox(height: 6),
                                 TextFormField(
                                   controller: _usernameController,
                                   decoration: const InputDecoration(
-                                    hintText: 'e.g. admin or WP001',
+                                    hintText: 'e.g. admin',
                                     prefixIcon: Icon(Icons.person_outline, color: Color(0xFF4361EE)),
                                   ),
                                   validator: (v) =>
-                                      (v == null || v.trim().isEmpty) ? 'Username / Code required' : null,
+                                      (v == null || v.trim().isEmpty) ? 'Username' : null,
                                 ),
                                 const SizedBox(height: 16),
 
