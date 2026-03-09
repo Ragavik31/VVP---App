@@ -85,6 +85,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
       } else if (resp is List) ordersList = resp;
       // For admin/staff: sort by fewest items first
       if (isAdmin || isStaff) {
+        if (isStaff) {
+          ordersList = ordersList.where((o) => o['status'] == 'assigned' || o['status'] == 'accepted').toList();
+        }
         ordersList.sort((a, b) {
           final aLen = (a['items'] is List) ? (a['items'] as List).length : 0;
           final bLen = (b['items'] is List) ? (b['items'] as List).length : 0;
@@ -239,9 +242,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           ),
                         ),
                       ),
-                    if ((isAdmin || isClient)) _buildOrdersCard(),
+                    if (isAdmin || isClient || user?.role == 'staff') _buildOrdersCard(),
                     const SizedBox(height: 16),
-                    if (isAdmin || user?.role == 'staff') _buildStockSection(),
+                    if (isAdmin) _buildStockSection(),
                     const SizedBox(height: 80),
                   ],
                 ),

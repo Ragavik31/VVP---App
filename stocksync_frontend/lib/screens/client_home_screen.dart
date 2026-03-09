@@ -16,8 +16,8 @@ class ClientHomeScreen extends StatefulWidget {
 class _ClientHomeScreenState extends State<ClientHomeScreen> {
   int _index = 0;
 
-  void _goToCart() {
-    setState(() => _index = 2);
+  void _goToProducts() {
+    setState(() => _index = 1);
   }
 
   static const _pageTitles = ['Dashboard', 'Products', 'Cart', 'My Orders'];
@@ -25,7 +25,7 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
   @override
   Widget build(BuildContext context) {
     final pages = [
-      ClientDashboardScreen(onPlaceOrder: _goToCart),
+      ClientDashboardScreen(onPlaceOrder: _goToProducts),
       const VaccineListScreen(),
       ClientOrderPlacementScreen(onOrderPlaced: () => setState(() => _index = 3)),
       const ClientMyOrdersScreen(),
