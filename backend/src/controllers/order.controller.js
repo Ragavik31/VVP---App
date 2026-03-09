@@ -230,7 +230,7 @@ const getPendingOrders = async (req, res) => {
     const limit = parseInt(req.query.limit, 10) || 50;
     const skip = (page - 1) * limit;
 
-    const filter = { status: { $in: ['pending', 'assigned', 'accepted'] } };
+    const filter = { status: { $in: ['pending', 'assigned', 'accepted', 'delivered'] } };
 
     const [orders, total] = await Promise.all([
       Order.find(filter)

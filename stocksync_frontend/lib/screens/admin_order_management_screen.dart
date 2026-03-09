@@ -407,7 +407,17 @@ class _AdminOrderManagementScreenState
                                   Builder(builder: (_) {
                                     final status = (order['status'] ?? 'pending').toString();
                                     Color bgColor; Color txtColor; String label;
-                                    if (status == 'accepted') {
+                                    if (status == 'delivered') {
+                                      bgColor = const Color(0xFFE8F5E9); txtColor = const Color(0xFF4CAF50);
+                                      String deliveredStr = '';
+                                      if (order['deliveredAt'] != null) {
+                                        try {
+                                          final d = DateTime.parse(order['deliveredAt'].toString()).toLocal();
+                                          deliveredStr = ' ${d.day}/${d.month}/${d.year} ${d.hour.toString().padLeft(2,'0')}:${d.minute.toString().padLeft(2,'0')}';
+                                        } catch (_) {}
+                                      }
+                                      label = '✔ Delivered$deliveredStr';
+                                    } else if (status == 'accepted') {
                                       bgColor = const Color(0xFFE8F5E9); txtColor = const Color(0xFF4CAF50); label = '✔ Accepted by Staff';
                                     } else if (status == 'assigned') {
                                       bgColor = const Color(0xFFE8EDFF); txtColor = const Color(0xFF4361EE); label = 'Assigned';

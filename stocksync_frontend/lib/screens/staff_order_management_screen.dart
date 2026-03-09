@@ -42,7 +42,7 @@ class _StaffOrderManagementScreenState
     setState(() { _isLoading = true; _error = null; });
 
     try {
-      final data = await ApiClient.get('/orders?status=assigned');
+      final data = await ApiClient.get('/orders');
       List<dynamic> orders = [];
       if (data is Map && data['data'] is List) {
         orders = data['data'];
@@ -315,6 +315,24 @@ class _StaffOrderManagementScreenState
                                                   color: (statusData['color'] as Color?) ?? const Color(0xFF6B7A9D),
                                                   fontWeight: FontWeight.w600)),
                                         ),
+                                        // Delivery time — only shown after delivery
+                                        if (isDelivered && order['deliveredAt'] != null)
+                                          Builder(builder: (_) {
+                                            try {
+                                              final d = DateTime.parse(order['deliveredAt'].toString()).toLocal();
+                                              final ds = '${d.day}/${d.month}/${d.year} ${d.hour.toString().padLeft(2,'0')}:${d.minute.toString().padLeft(2,'0')}';
+                                              return Padding(
+                                                padding: const EdgeInsets.only(top: 3),
+                                                child: Row(
+                                                  children: [
+                                                    const Icon(Icons.local_shipping_rounded, size: 11, color: Color(0xFF4CAF50)),
+                                                    const SizedBox(width: 3),
+                                                    Text('Delivered $ds', style: const TextStyle(fontSize: 10, color: Color(0xFF4CAF50), fontWeight: FontWeight.w600)),
+                                                  ],
+                                                ),
+                                              );
+                                            } catch (_) { return const SizedBox.shrink(); }
+                                          }),
                                       ],
                                     ),
                                   ),
