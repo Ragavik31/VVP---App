@@ -214,7 +214,11 @@ class _AdminOrderManagementScreenState
               _detailRow(Icons.event_rounded, 'Due Date', _formatDueDate(order['paymentDueDate'])),
             _detailRow(Icons.currency_rupee_rounded, 'Total', '₹${order['totalPrice'] ?? 0}'),
             if (order['assignedStaffName'] != null)
-              _detailRow(Icons.person_pin_rounded, 'Assigned To', order['assignedStaffName']),
+              _detailRow(Icons.person_pin_rounded, 'Assigned To', order['assignedStaffName'].toString()),
+            if (order['acceptedAt'] != null)
+              _detailRow(Icons.check_circle_outline_rounded, 'Accepted At', _formatTimestamp(order['acceptedAt'])),
+            if (order['deliveredAt'] != null)
+              _detailRow(Icons.local_shipping_rounded, 'Delivered At', _formatTimestamp(order['deliveredAt'])),
             const Divider(height: 24),
             const Text('Items', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15, color: Color(0xFF0D1B2A))),
             const SizedBox(height: 8),
@@ -481,6 +485,15 @@ class _AdminOrderManagementScreenState
       return '$dateStr ($daysLeft days left)';
     } catch (_) {
       return dueDateStr.toString();
+    }
+  }
+
+  String _formatTimestamp(dynamic ts) {
+    try {
+      final d = DateTime.parse(ts.toString()).toLocal();
+      return '${d.day}/${d.month}/${d.year}  ${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}';
+    } catch (_) {
+      return ts.toString();
     }
   }
 }

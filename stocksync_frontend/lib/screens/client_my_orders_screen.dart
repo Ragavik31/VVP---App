@@ -354,6 +354,23 @@ class _ClientMyOrdersScreenState extends State<ClientMyOrdersScreen> {
                                 color: Color(0xFF4361EE))),
                       ],
                     ),
+                    // Delivered time (if delivered)
+                    if (o['deliveredAt'] != null) ...[  
+                      const SizedBox(height: 6),
+                      Builder(builder: (_) {
+                        try {
+                          final d = DateTime.parse(o['deliveredAt'].toString()).toLocal();
+                          final ds = '${d.day}/${d.month}/${d.year}  ${d.hour.toString().padLeft(2,'0')}:${d.minute.toString().padLeft(2,'0')}';
+                          return Row(
+                            children: [
+                              const Icon(Icons.local_shipping_rounded, size: 13, color: Color(0xFF06D6A0)),
+                              const SizedBox(width: 4),
+                              Text('Delivered on $ds', style: const TextStyle(fontSize: 12, color: Color(0xFF06D6A0), fontWeight: FontWeight.w600)),
+                            ],
+                          );
+                        } catch (_) { return const SizedBox.shrink(); }
+                      }),
+                    ],
                   ],
                 ),
               ),

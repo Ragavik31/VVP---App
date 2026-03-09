@@ -163,6 +163,8 @@ class _StaffOrderManagementScreenState
             _detailRow(Icons.person_rounded, 'Client', order['clientName']?.toString() ?? 'Unknown'),
             _detailRow(Icons.payments_rounded, 'Payment', (order['paymentMethod']?.toString() ?? '—').toUpperCase()),
             _detailRow(Icons.currency_rupee_rounded, 'Total', '₹${order['totalPrice'] ?? 0}'),
+            if (order['deliveredAt'] != null)
+              _detailRow(Icons.local_shipping_rounded, 'Delivered At', _formatTimestamp(order['deliveredAt'])),
             const Divider(height: 24),
             const Text('Items', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15, color: Color(0xFF0D1B2A))),
             const SizedBox(height: 8),
@@ -203,6 +205,15 @@ class _StaffOrderManagementScreenState
         ],
       ),
     );
+  }
+
+  String _formatTimestamp(dynamic ts) {
+    try {
+      final d = DateTime.parse(ts.toString()).toLocal();
+      return '${d.day}/${d.month}/${d.year}  ${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}';
+    } catch (_) {
+      return ts.toString();
+    }
   }
 
   @override
