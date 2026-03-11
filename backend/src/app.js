@@ -6,6 +6,7 @@ const authRoutes = require('./routes/auth.routes');
 const vaccineRoutes = require('./routes/vaccine.routes');
 const clientRoutes = require('./routes/client.routes');
 const orderRoutes = require('./routes/order.routes');
+const analyticsRoutes = require('./routes/analytics.routes');
 
 const app = express();
 app.use("/api/v1/payments", require("./routes/payment.routes"));
@@ -21,6 +22,7 @@ app.use('/api/v1/products', productRoutes);
 app.use('/api/v1/vaccines', vaccineRoutes);
 app.use('/api/v1/clients', clientRoutes);
 app.use('/api/v1/orders', orderRoutes);
+app.use('/api/admin/analytics', analyticsRoutes);
 
 app.use((req, res) => {
   res.status(404).json({ success: false, message: 'Not found' });

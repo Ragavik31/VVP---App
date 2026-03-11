@@ -82,6 +82,10 @@ const orderSchema = new mongoose.Schema(
       type: String,
       default: null,
     },
+    assignedAt: {
+      type: Date,
+      default: null,
+    },
     acceptedAt: {
       type: Date,
       default: null,
