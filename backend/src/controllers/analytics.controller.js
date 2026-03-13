@@ -1,143 +1,113 @@
 const Order = require('../models/order.model');
-const Product = require('../models/product.model');
-const User = require('../models/user.model');
 
-// Helper to get date based on dateRange (Today, Week, Month)
-const getDateFilter = (dateRange) => {
-    const now = new Date();
-    if (dateRange === 'Today') {
-        return new Date(now.setHours(0, 0, 0, 0));
-    } else if (dateRange === 'Week') {
-        return new Date(now.setDate(now.getDate() - 7));
-    } else if (dateRange === 'Month') {
-        return new Date(now.setMonth(now.getMonth() - 1));
-    }
-    return null;
-};
-
-exports.getAnalyticsDashboard = async (req, res) => {
+// ======================================================
+// GET ANALYTICS DASHBOARD (ADMIN)
+// ======================================================
+const getAnalyticsDashboard = async (req, res) => {
     try {
-        const { dateRange } = req.query;
+        const { startDate, endDate } = req.query;
 
-        // 1. match stage for filtering based on Date Range
-        const matchStage = {};
-        const lowerBoundDate = getDateFilter(dateRange);
-        if (lowerBoundDate) {
-            matchStage.createdAt = { $gte: lowerBoundDate };
+        // Build date filter if provided
+        let dateFilter = {};
+        if (startDate || endDate) {
+            dateFilter.createdAt = {};
+            if (startDate) dateFilter.createdAt.$gte = new Date(startDate);
+            if (endDate) dateFilter.createdAt.$lte = new Date(endDate);
         }
 
-        // 2. KPIs
-        const kpiAggregation = await Order.aggregate([
-            { $match: matchStage },
-            {
-                $group: {
-                    _id: null,
-                    totalRevenue: {
-                        $sum: {
-                            $cond: [{ $eq: ["$paymentStatus", "paid"] }, "$totalPrice", 0]
-                        }
-                    },
-                    outstandingReceivables: {
-                        $sum: {
-                            $cond: [{ $in: ["$paymentStatus", ["unpaid", "overdue"]] }, "$totalPrice", 0]
-                        }
-                    }
-                }
-            }
+        // 1. KPIs
+        // Total Revenue (paid orders)
+        const revenueAgg = await Order.aggregate([
+            { $match: { ...dateFilter, paymentStatus: 'paid' } },
+            { $group: { _id: null, totalRevenue: { $sum: '$totalPrice' } } }
         ]);
+        const totalRevenue = revenueAgg.length > 0 ? revenueAgg[0].totalRevenue : 0;
 
-        const kpis = {
-            totalRevenue: kpiAggregation[0]?.totalRevenue || 0,
-            outstandingReceivables: kpiAggregation[0]?.outstandingReceivables || 0,
-        };
-
-        // Active Staff Load (Assigned but not Completed)
-        const activeStaffLoad = await Order.aggregate([
-            { $match: { ...matchStage, status: { $in: ["assigned", "accepted", "delivered"] } } }, // assuming delivered is still active until completed, or maybe just assigned and accepted
-            {
-                $group: {
-                    _id: "$assignedTo",
-                    staffName: { $first: "$assignedStaffName" },
-                    activeOrders: { $sum: 1 }
-                }
-            },
-            {
-                $project: {
-                    _id: 0,
-                    staff: "$staffName",
-                    count: "$activeOrders"
-                }
-            }
+        // Outstanding Receivables (cash and unpaid orders)
+        const outstandingAgg = await Order.aggregate([
+            { $match: { ...dateFilter, paymentMethod: 'cash', paymentStatus: 'unpaid' } },
+            { $group: { _id: null, totalOutstanding: { $sum: '$totalPrice' } } }
         ]);
+        const totalOutstanding = outstandingAgg.length > 0 ? outstandingAgg[0].totalOutstanding : 0;
 
-        // 3. Payment & Collection Tracker (Due within 7 days or Overdue)
+        // Active Staff Load
+        const activeStaffCountAgg = await Order.aggregate([
+            { $match: { status: { $in: ['assigned', 'accepted'] } } },
+            { $group: { _id: '$assignedTo', count: { $sum: 1 } } }
+        ]);
+        const activeStaffLoad = activeStaffCountAgg.reduce((acc, curr) => acc + curr.count, 0);
+
+        // 2. Payment & Collection Tracker
+        // Fetch orders overdue or due in next 7 days
+        const now = new Date();
         const sevenDaysFromNow = new Date();
-        sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 7);
+        sevenDaysFromNow.setDate(now.getDate() + 7);
 
-        // Instead of aggregating, find the documents because we want a list to show
-        const collections = await Order.find({
-            ...matchStage,
-            paymentStatus: { $in: ["unpaid", "overdue"] },
-            paymentDueDate: { $lte: sevenDaysFromNow }
-        }).select('clientName totalPrice paymentDueDate paymentStatus').sort('paymentDueDate');
+        const collectionTracker = await Order.find({
+            paymentMethod: 'cash',
+            paymentStatus: 'unpaid',
+            paymentDueDate: { $ne: null, $lte: sevenDaysFromNow }
+        })
+            .select('clientName clientCode totalPrice paymentDueDate paymentStatus status createdAt')
+            .sort({ paymentDueDate: 1 });
 
-        // 4. Products & Client Analytics
+        // 3. Product Analytics
+        // Top 5 Products by quantity sold
         const topProducts = await Order.aggregate([
-            { $match: matchStage },
-            { $unwind: "$items" },
+            { $match: dateFilter },
+            { $unwind: '$items' },
             {
                 $group: {
-                    _id: "$items.vaccineId",
-                    name: { $first: "$items.vaccineName" },
-                    frequency: { $sum: 1 },
-                    quantitySold: { $sum: "$items.quantity" }
+                    _id: '$items.vaccineId',
+                    productName: { $first: '$items.vaccineName' },
+                    quantitySold: { $sum: '$items.quantity' }
                 }
             },
-            { $sort: { frequency: -1 } },
+            { $sort: { quantitySold: -1 } },
             { $limit: 5 }
         ]);
 
+        // Top Clients by spend
         const topClients = await Order.aggregate([
-            { $match: matchStage },
+            { $match: dateFilter },
             {
                 $group: {
-                    _id: "$clientId",
-                    clientName: { $first: "$clientName" },
-                    totalSpend: { $sum: "$totalPrice" }
+                    _id: '$clientId',
+                    clientName: { $first: '$clientName' },
+                    totalSpend: { $sum: '$totalPrice' }
                 }
             },
             { $sort: { totalSpend: -1 } },
             { $limit: 5 }
         ]);
 
-        // 5. Staff Efficiency Report (Average Acceptance Time & Order Volume)
+        // 4. Staff Efficiency Report
+        // Avg time to accept order (delta between acceptedAt and assignedAt) in minutes
         const staffEfficiency = await Order.aggregate([
-            { $match: { ...matchStage, assignedTo: { $ne: null } } },
             {
-                $group: {
-                    _id: "$assignedTo",
-                    staffName: { $first: "$assignedStaffName" },
-                    orderVolume: { $sum: 1 },
-                    avgAcceptanceTimeMs: {
-                        $avg: {
-                            $cond: [
-                                { $and: [{ $ne: ["$acceptedAt", null] }, { $ne: ["$assignedAt", null] }] },
-                                { $subtract: ["$acceptedAt", "$assignedAt"] },
-                                null
-                            ]
-                        }
-                    }
+                $match: {
+                    ...dateFilter,
+                    assignedAt: { $exists: true, $ne: null },
+                    acceptedAt: { $exists: true, $ne: null },
+                    assignedStaffName: { $exists: true, $ne: null }
                 }
             },
             {
-                $project: {
-                    _id: 0,
-                    staff: "$staffName",
-                    count: "$orderVolume",
-                    // Convert milliseconds to minutes
-                    avgTime: {
-                        $round: [{ $divide: ["$avgAcceptanceTimeMs", 1000 * 60] }, 2] // avgTime in minutes rounded to 2 decimals
-                    }
+                $group: {
+                    _id: '$assignedTo',
+                    staffName: { $first: '$assignedStaffName' },
+                    avgAcceptanceTimeMinutes: {
+                        $avg: {
+                            $divide: [
+                                { $subtract: ['$acceptedAt', '$assignedAt'] },
+                                1000 * 60 // convert milliseconds to minutes
+                            ]
+                        }
+                    },
+                    ordersDelivered: {
+                        $sum: { $cond: [{ $eq: ['$status', 'delivered'] }, 1, 0] }
+                    },
+                    totalAssigned: { $sum: 1 }
                 }
             }
         ]);
@@ -146,18 +116,22 @@ exports.getAnalyticsDashboard = async (req, res) => {
             success: true,
             data: {
                 kpis: {
-                    ...kpis,
+                    totalRevenue,
+                    totalOutstanding,
                     activeStaffLoad
                 },
-                collections,
+                collectionTracker,
                 topProducts,
                 topClients,
                 staffEfficiency
             }
         });
-
-    } catch (err) {
-        console.error(err);
+    } catch (error) {
+        console.error('Error fetching analytics:', error);
         res.status(500).json({ success: false, message: 'Server error retrieving analytics' });
     }
+};
+
+module.exports = {
+    getAnalyticsDashboard
 };
