@@ -5,45 +5,45 @@ const Order = require('../models/order.model');
 // ======================================================
 const getAnalyticsDashboard = async (req, res) => {
     try {
-        const { startDate, endDate } = req.query;
+        const { dateRange } = req.query; // 'Today', 'Week', 'Month', 'All Time'
 
-        // Build date filter if provided
+        // Build date filter
         let dateFilter = {};
-        if (startDate || endDate) {
-            dateFilter.createdAt = {};
-            if (startDate) dateFilter.createdAt.$gte = new Date(startDate);
-            if (endDate) dateFilter.createdAt.$lte = new Date(endDate);
+        if (dateRange && dateRange !== 'All Time') {
+            const start = new Date();
+            start.setHours(0, 0, 0, 0); // start of today
+            if (dateRange === 'Week') {
+                start.setDate(start.getDate() - 7);
+            } else if (dateRange === 'Month') {
+                start.setDate(start.getDate() - 30);
+            }
+            dateFilter.createdAt = { $gte: start };
         }
 
         // 1. KPIs
-        // Total Revenue (paid orders)
         const revenueAgg = await Order.aggregate([
             { $match: { ...dateFilter, paymentStatus: 'paid' } },
             { $group: { _id: null, totalRevenue: { $sum: '$totalPrice' } } }
         ]);
         const totalRevenue = revenueAgg.length > 0 ? revenueAgg[0].totalRevenue : 0;
 
-        // Outstanding Receivables (cash and unpaid orders)
         const outstandingAgg = await Order.aggregate([
             { $match: { ...dateFilter, paymentMethod: 'cash', paymentStatus: 'unpaid' } },
             { $group: { _id: null, totalOutstanding: { $sum: '$totalPrice' } } }
         ]);
-        const totalOutstanding = outstandingAgg.length > 0 ? outstandingAgg[0].totalOutstanding : 0;
+        const outstandingReceivables = outstandingAgg.length > 0 ? outstandingAgg[0].totalOutstanding : 0;
 
-        // Active Staff Load
-        const activeStaffCountAgg = await Order.aggregate([
+        const activeStaffLoad = await Order.aggregate([
             { $match: { status: { $in: ['assigned', 'accepted'] } } },
-            { $group: { _id: '$assignedTo', count: { $sum: 1 } } }
+            { $group: { _id: '$assignedTo', count: { $sum: 1 }, staffName: { $first: '$assignedStaffName' } } }
         ]);
-        const activeStaffLoad = activeStaffCountAgg.reduce((acc, curr) => acc + curr.count, 0);
 
-        // 2. Payment & Collection Tracker
-        // Fetch orders overdue or due in next 7 days
+        // 2. Collections (Overdue or Due in next 7 days)
         const now = new Date();
         const sevenDaysFromNow = new Date();
         sevenDaysFromNow.setDate(now.getDate() + 7);
 
-        const collectionTracker = await Order.find({
+        const collections = await Order.find({
             paymentMethod: 'cash',
             paymentStatus: 'unpaid',
             paymentDueDate: { $ne: null, $lte: sevenDaysFromNow }
@@ -51,15 +51,14 @@ const getAnalyticsDashboard = async (req, res) => {
             .select('clientName clientCode totalPrice paymentDueDate paymentStatus status createdAt')
             .sort({ paymentDueDate: 1 });
 
-        // 3. Product Analytics
-        // Top 5 Products by quantity sold
-        const topProducts = await Order.aggregate([
+        // 3. Product & Client Analytics
+        const topProductsRaw = await Order.aggregate([
             { $match: dateFilter },
             { $unwind: '$items' },
             {
                 $group: {
                     _id: '$items.vaccineId',
-                    productName: { $first: '$items.vaccineName' },
+                    name: { $first: '$items.vaccineName' },
                     quantitySold: { $sum: '$items.quantity' }
                 }
             },
@@ -67,7 +66,12 @@ const getAnalyticsDashboard = async (req, res) => {
             { $limit: 5 }
         ]);
 
-        // Top Clients by spend
+        // Fallback if product name missing
+        const topProducts = topProductsRaw.map(p => ({
+            name: p.name || 'Unknown Item',
+            quantitySold: p.quantitySold
+        }));
+
         const topClients = await Order.aggregate([
             { $match: dateFilter },
             {
@@ -81,9 +85,8 @@ const getAnalyticsDashboard = async (req, res) => {
             { $limit: 5 }
         ]);
 
-        // 4. Staff Efficiency Report
-        // Avg time to accept order (delta between acceptedAt and assignedAt) in minutes
-        const staffEfficiency = await Order.aggregate([
+        // 4. Staff Efficiency
+        const staffEfficiencyRaw = await Order.aggregate([
             {
                 $match: {
                     ...dateFilter,
@@ -95,32 +98,36 @@ const getAnalyticsDashboard = async (req, res) => {
             {
                 $group: {
                     _id: '$assignedTo',
-                    staffName: { $first: '$assignedStaffName' },
-                    avgAcceptanceTimeMinutes: {
+                    staff: { $first: '$assignedStaffName' },
+                    avgTime: {
                         $avg: {
                             $divide: [
                                 { $subtract: ['$acceptedAt', '$assignedAt'] },
-                                1000 * 60 // convert milliseconds to minutes
+                                1000 * 60 // convert to mins
                             ]
                         }
                     },
-                    ordersDelivered: {
-                        $sum: { $cond: [{ $eq: ['$status', 'delivered'] }, 1, 0] }
-                    },
-                    totalAssigned: { $sum: 1 }
+                    count: { $sum: 1 }
                 }
             }
         ]);
+
+        // Format avgTime to fixed string (e.g. "1.5")
+        const staffEfficiency = staffEfficiencyRaw.map(s => ({
+            staff: s.staff,
+            avgTime: s.avgTime ? parseFloat(s.avgTime.toFixed(1)) : 0,
+            count: s.count
+        }));
 
         res.status(200).json({
             success: true,
             data: {
                 kpis: {
                     totalRevenue,
-                    totalOutstanding,
+                    outstandingReceivables,
                     activeStaffLoad
                 },
-                collectionTracker,
+                collections,
                 topProducts,
                 topClients,
                 staffEfficiency

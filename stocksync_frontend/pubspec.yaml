@@ -17,9 +17,9 @@ dependencies:
   socket_io_client: ^2.0.0
   razorpay_flutter: ^1.4.1
   intl: ^0.20.2
-  fl_chart: ^0.66.0
-  csv: ^5.0.2
-  path_provider: ^2.1.2
+  fl_chart: ^1.1.1
+  csv: ^7.2.0
+  path_provider: ^2.1.5
   url_launcher: ^6.2.4
 
 dev_dependencies:
