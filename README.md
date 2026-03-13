@@ -82,13 +82,13 @@ ConsultancyProject_1/
 
 ## Features
 
-- **User Authentication**: Secure login/registration with JWT tokens
-- **Client Management**: Create and manage client accounts
-- **Vaccine Inventory**: Track vaccine stock and availability
-- **Order Management**: Create and manage orders with real-time updates
-- **Product Management**: Manage products in the system
-- **Real-time Updates**: WebSocket integration for instant notifications
-- **Role-based Access**: Different access levels for users and clients
+- **Unified Authentication**: Single secure login screen for Admin, Staff, and Clients using JWT.
+- **Admin Dashboard & Analytics**: Live tracking of KPIs (Revenue, Outstanding Collections, Staff Efficiency), Top Clients, and Top Products with CSV export support.
+- **Order Management & Fulfillment**: Full pipeline from Client order placement to Staff assignment, acceptance, and delivery.
+- **Collection Tracker**: Highlights upcoming and overdue cash payments within a 7-day window.
+- **Client Management**: Create, manage, and assign custom entry codes for client accounts.
+- **Vaccine/Product Inventory**: Track stock, availability, and pricing.
+- **Real-time Sync**: Instant WebSocket integration (Socket.io) for order assignments, status updates, and new orders without manual refreshing.
 
 ## Getting Started
 
@@ -241,12 +241,15 @@ npm run smoke-test    # Run smoke tests
 - description
 
 ### Order
-- clientId
-- items (products/vaccines)
-- totalAmount
-- status (pending, completed, cancelled)
-- orderDate
-- deliveryDate
+- clientId / clientName / clientCode
+- items (products/vaccines with quantities)
+- totalPrice
+- status (pending, assigned, accepted, delivered, cancelled)
+- paymentMethod (cash, online)
+- paymentStatus (paid, unpaid)
+- paymentDueDate
+- assignedTo (Staff ID)
+- timestamps (createdAt, assignedAt, acceptedAt, deliveredAt)
 
 ### Product
 - name
@@ -285,4 +288,4 @@ The application uses Socket.io for real-time communication. Connected clients re
 
 ---
 
-**Last Updated**: February 8, 2026
+**Last Updated**: March 2026
