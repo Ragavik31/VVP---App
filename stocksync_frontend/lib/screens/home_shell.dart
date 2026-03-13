@@ -6,7 +6,6 @@ import 'admin_sales_analytics_screen.dart';
 import 'client_form_screen.dart';
 import 'client_list_screen.dart';
 import 'dashboard_screen.dart';
-import 'sales_billing_placeholder_screen.dart';
 import 'staff_order_management_screen.dart';
 import 'vaccine_form_page.dart';
 import 'vaccine_list_screen.dart';
@@ -29,14 +28,14 @@ class _HomeShellState extends State<HomeShell> {
     ];
     final isStaff = auth.currentUser?.role == 'staff';
     if (isStaff) return const [DashboardScreen(), StaffOrderManagementScreen(), VaccineListScreen()];
-    return const [DashboardScreen(), AdminSalesAnalyticsScreen(), AdminOrderManagementScreen(), ClientListScreen(), VaccineListScreen(), SalesBillingPlaceholderScreen()];
+    return const [DashboardScreen(), AdminOrderManagementScreen(), ClientListScreen(), VaccineListScreen(), AdminSalesAnalyticsScreen()];
   }
 
   List<String> get _titles {
     final auth = Provider.of<AuthProvider>(context, listen: false);
     if (auth.currentUser?.role == 'client') return ['Dashboard', 'Vaccines'];
     if (auth.currentUser?.role == 'staff') return ['Dashboard', 'Orders', 'Vaccines'];
-    return ['Dashboard', 'Analytics', 'Orders', 'Clients', 'Vaccines', 'Sales'];
+    return ['Dashboard', 'Orders', 'Clients', 'Vaccines', 'Sales'];
   }
 
   List<_NavItem> get _navDefs {
@@ -56,11 +55,10 @@ class _HomeShellState extends State<HomeShell> {
     }
     return [
       _NavItem(Icons.dashboard_rounded, Icons.dashboard, 'Dashboard'),
-      _NavItem(Icons.analytics_rounded, Icons.analytics, 'Analytics'),
       _NavItem(Icons.assignment_rounded, Icons.assignment, 'Orders'),
       _NavItem(Icons.people_alt_rounded, Icons.people, 'Clients'),
       _NavItem(Icons.vaccines_rounded, Icons.vaccines, 'Vaccines'),
-      _NavItem(Icons.receipt_long_rounded, Icons.receipt_long, 'Sales'),
+      _NavItem(Icons.analytics_rounded, Icons.analytics, 'Sales'),
     ];
   }
 
@@ -97,7 +95,7 @@ class _HomeShellState extends State<HomeShell> {
           ],
         ),
         actions: [
-          if (_currentIndex == 3 && auth.currentUser?.role == 'admin')
+          if (_currentIndex == 2 && auth.currentUser?.role == 'admin')
             IconButton(
               icon: const Icon(Icons.person_add_alt_1_rounded, color: Colors.white),
               tooltip: 'Add Client',
@@ -106,7 +104,7 @@ class _HomeShellState extends State<HomeShell> {
                     MaterialPageRoute(builder: (_) => const ClientFormScreen()));
               },
             ),
-          if (_currentIndex == 4 && auth.currentUser?.role == 'admin')
+          if (_currentIndex == 3 && auth.currentUser?.role == 'admin')
             IconButton(
               icon: const Icon(Icons.add_box_rounded, color: Colors.white),
               tooltip: 'Add Product',

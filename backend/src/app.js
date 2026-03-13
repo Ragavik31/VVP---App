@@ -22,7 +22,7 @@ app.use('/api/v1/products', productRoutes);
 app.use('/api/v1/vaccines', vaccineRoutes);
 app.use('/api/v1/clients', clientRoutes);
 app.use('/api/v1/orders', orderRoutes);
-app.use('/api/admin/analytics', analyticsRoutes);
+app.use('/api/v1/admin/analytics', analyticsRoutes);
 
 app.use((req, res) => {
   res.status(404).json({ success: false, message: 'Not found' });

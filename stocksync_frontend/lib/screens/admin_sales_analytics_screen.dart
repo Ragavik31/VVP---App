@@ -159,7 +159,7 @@ class _AdminSalesAnalyticsScreenState extends State<AdminSalesAnalyticsScreen> {
         csvData.add([clientName, amount, dateTxt, status.toString().toUpperCase()]);
       }
 
-      String csv = const ListToCsvConverter().convert(csvData);
+      String csv = const CsvEncoder().convert(csvData);
 
       if (kIsWeb) {
         // Not handled for web explicitly here, but would use html
@@ -268,7 +268,7 @@ class _AdminSalesAnalyticsScreenState extends State<AdminSalesAnalyticsScreen> {
       mainAxisSpacing: 12,
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      childAspectRatio: 1.5,
+      childAspectRatio: 1.65,
       children: [
         _buildStatCard(
           title: 'Total Revenue',
