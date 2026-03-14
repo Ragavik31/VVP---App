@@ -51,7 +51,7 @@ async function setupDefaultUsers() {
     console.log('\nDefault users setup complete!');
     console.log('Login credentials:');
     console.log('Admin - Role: admin, Password: admin123');
-    console.log('Staff - Role: staff1 or staff2, Password: staff123');
+    console.log('Staff - Username: Siva or Satish, Password: staff123');
 
   } catch (error) {
     console.error('Setup error:', error);
