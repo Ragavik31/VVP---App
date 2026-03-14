@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../api_client.dart';
 import '../auth/auth_provider.dart';
 import '../services/socket_service.dart';
@@ -305,6 +306,85 @@ class _ClientMyOrdersScreenState extends State<ClientMyOrdersScreen> {
                         );
                       }),
                     ],
+                  ),
+                ),
+
+              // Staff info (when assigned or accepted)
+              if ((status == 'assigned' || status == 'accepted') &&
+                  (o['assignedStaffName'] != null))
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFEEF2FF),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: const Color(0xFF4361EE).withOpacity(0.2)),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 36,
+                          height: 36,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF4361EE).withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Icon(Icons.delivery_dining_rounded,
+                              size: 20, color: Color(0xFF4361EE)),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text('Delivery Staff',
+                                  style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                      color: Color(0xFF6B7A9D))),
+                              const SizedBox(height: 2),
+                              Text(o['assignedStaffName']?.toString() ?? '',
+                                  style: const TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w700,
+                                      color: Color(0xFF0D1B2A))),
+                              if ((o['assignedStaffPhone'] ?? '').toString().isNotEmpty)
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 2),
+                                  child: Text(
+                                    o['assignedStaffPhone'].toString(),
+                                    style: const TextStyle(
+                                        fontSize: 13,
+                                        color: Color(0xFF4361EE),
+                                        fontWeight: FontWeight.w600),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                        if ((o['assignedStaffPhone'] ?? '').toString().isNotEmpty)
+                          GestureDetector(
+                            onTap: () async {
+                              final phone = o['assignedStaffPhone'].toString();
+                              final uri = Uri.parse('tel:$phone');
+                              if (await canLaunchUrl(uri)) {
+                                await launchUrl(uri);
+                              }
+                            },
+                            child: Container(
+                              width: 40,
+                              height: 40,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF06D6A0),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Icon(Icons.phone_rounded,
+                                  color: Colors.white, size: 20),
+                            ),
+                          ),
+                      ],
+                    ),
                   ),
                 ),
 

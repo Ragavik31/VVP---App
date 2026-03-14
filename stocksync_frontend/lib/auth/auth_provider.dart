@@ -64,4 +64,24 @@ class AuthProvider with ChangeNotifier {
       throw Exception(response['message'] ?? 'Failed to change password');
     }
   }
+
+  Future<void> updatePhone(String phone) async {
+    final response = await ApiClient.patch('/auth/phone', {
+      'phone': phone,
+    });
+
+    if (response is! Map<String, dynamic>) {
+      throw Exception('Unexpected response from server');
+    }
+
+    if (response['success'] != true) {
+      throw Exception(response['message'] ?? 'Failed to update phone');
+    }
+
+    // Update local user with new phone
+    if (_currentUser != null) {
+      _currentUser = _currentUser!.copyWith(phone: phone);
+      notifyListeners();
+    }
+  }
 }

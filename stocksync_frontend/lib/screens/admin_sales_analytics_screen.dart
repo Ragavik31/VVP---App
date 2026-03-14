@@ -268,7 +268,7 @@ class _AdminSalesAnalyticsScreenState extends State<AdminSalesAnalyticsScreen> {
       mainAxisSpacing: 12,
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      childAspectRatio: 1.65,
+      childAspectRatio: 1.4,
       children: [
         _buildStatCard(
           title: 'Total Revenue',

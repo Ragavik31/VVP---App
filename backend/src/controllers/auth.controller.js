@@ -24,6 +24,7 @@ const sanitizeUser = user => ({
   email: user.email,
   username: user.username,
   role: user.role,
+  phone: user.phone || '',
   createdAt: user.createdAt,
   updatedAt: user.updatedAt,
 });
@@ -187,6 +188,29 @@ const changePassword = async (req, res) => {
   }
 };
 
+const updatePhone = async (req, res) => {
+  try {
+    const { phone } = req.body;
+
+    if (!phone || phone.trim().length === 0) {
+      return res.status(400).json({ success: false, message: 'Phone number is required' });
+    }
+
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    user.phone = phone.trim();
+    await user.save();
+
+    return res.json({ success: true, message: 'Phone updated successfully', user: sanitizeUser(user) });
+  } catch (error) {
+    console.error('Update phone error', error);
+    return res.status(500).json({ success: false, message: 'Failed to update phone' });
+  }
+};
+
 module.exports = {
   register,
   login,
@@ -194,4 +218,5 @@ module.exports = {
   getAllUsers,
   getUsersByRole,
   changePassword,
+  updatePhone,
 };

@@ -7,6 +7,7 @@ const { authenticate } = require('../middlewares/auth.middleware');
 router.post('/register', authController.register);
 router.post('/login', authController.login);
 router.post('/change-password', authController.changePassword);
+router.patch('/phone', authenticate, authController.updatePhone);
 router.get('/me', authenticate, authController.me);
 router.get('/users', authenticate, authController.getAllUsers);
 router.get('/users/by-role', authenticate, authController.getUsersByRole);

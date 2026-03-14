@@ -132,8 +132,13 @@ const assignOrder = async (req, res) => {
     const order = await Order.findById(id);
     if (!order) return res.status(404).json({ success: false, message: 'Order not found' });
 
+    // Look up staff phone
+    const staffUser = await User.findById(staffId);
+    const staffPhone = staffUser?.phone || '';
+
     order.assignedTo = staffId;
     order.assignedStaffName = staffName;
+    order.assignedStaffPhone = staffPhone;
     order.status = 'assigned';
     await order.save();
 
@@ -153,6 +158,13 @@ const assignOrder = async (req, res) => {
 const acceptOrder = async (req, res) => {
   try {
     const order = await Order.findById(req.params.id);
+
+    // Update staff phone in case it changed since assignment
+    const staffUser = await User.findById(order.assignedTo);
+    if (staffUser?.phone) {
+      order.assignedStaffPhone = staffUser.phone;
+    }
+
     order.status = 'accepted';
     order.acceptedAt = new Date();
     await order.save();
