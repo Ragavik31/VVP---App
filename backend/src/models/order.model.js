@@ -82,10 +82,6 @@ const orderSchema = new mongoose.Schema(
       type: String,
       default: null,
     },
-    assignedStaffPhone: {
-      type: String,
-      default: null,
-    },
     assignedAt: {
       type: Date,
       default: null,

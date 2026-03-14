@@ -132,13 +132,8 @@ const assignOrder = async (req, res) => {
     const order = await Order.findById(id);
     if (!order) return res.status(404).json({ success: false, message: 'Order not found' });
 
-    // Look up staff phone so clients can contact them
-    const staffUser = await User.findById(staffId).select('phone');
-    const staffPhone = staffUser?.phone || null;
-
     order.assignedTo = staffId;
     order.assignedStaffName = staffName;
-    order.assignedStaffPhone = staffPhone;
     order.status = 'assigned';
     await order.save();
 

@@ -24,7 +24,6 @@ const sanitizeUser = user => ({
   email: user.email,
   username: user.username,
   role: user.role,
-  phone: user.phone || null,
   createdAt: user.createdAt,
   updatedAt: user.updatedAt,
 });
@@ -188,34 +187,6 @@ const changePassword = async (req, res) => {
   }
 };
 
-const changePhone = async (req, res) => {
-  try {
-    const { username, password, newPhone } = req.body;
-
-    if (!username || !password || !newPhone) {
-      return res.status(400).json({ success: false, message: 'Username, password, and newPhone are required' });
-    }
-
-    const user = await User.findOne({ username });
-    if (!user) {
-      return res.status(404).json({ success: false, message: 'User not found' });
-    }
-
-    const valid = await bcrypt.compare(password, user.passwordHash);
-    if (!valid) {
-      return res.status(401).json({ success: false, message: 'Incorrect password' });
-    }
-
-    user.phone = newPhone;
-    await user.save();
-
-    return res.json({ success: true, message: 'Phone number updated successfully' });
-  } catch (error) {
-    console.error('Change phone error', error);
-    return res.status(500).json({ success: false, message: 'Failed to change phone number' });
-  }
-};
-
 module.exports = {
   register,
   login,
@@ -223,5 +194,4 @@ module.exports = {
   getAllUsers,
   getUsersByRole,
   changePassword,
-  changePhone,
 };

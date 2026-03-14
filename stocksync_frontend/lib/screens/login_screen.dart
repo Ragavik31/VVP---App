@@ -9,23 +9,17 @@ class LoginScreen extends StatefulWidget {
   State<LoginScreen> createState() => _LoginScreenState();
 }
 
-// Three modes for this screen
-enum _ScreenMode { login, changePassword, changePhone }
-
 class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   final _passwordController = TextEditingController();
   final _usernameController = TextEditingController();
-
+  
   // For Change Password
   final _oldPasswordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
 
-  // For Change Phone
-  final _newPhoneController = TextEditingController();
-
   bool _isSubmitting = false;
-  _ScreenMode _mode = _ScreenMode.login;
+  bool _isChangePasswordMode = false;
   bool _obscurePassword = true;
   bool _obscureOldPassword = true;
   bool _obscureConfirmPassword = true;
@@ -51,15 +45,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     _usernameController.dispose();
     _oldPasswordController.dispose();
     _confirmPasswordController.dispose();
-    _newPhoneController.dispose();
     super.dispose();
-  }
-
-  void _clearSecondaryFields() {
-    _passwordController.clear();
-    _oldPasswordController.clear();
-    _confirmPasswordController.clear();
-    _newPhoneController.clear();
   }
 
   Future<void> _submitLogin() async {
@@ -98,15 +84,17 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
         _oldPasswordController.text.trim(),
         _passwordController.text.trim(),
       );
-
+      
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Password changed successfully! Please login."), backgroundColor: Colors.green),
       );
-
+      
       setState(() {
-        _mode = _ScreenMode.login;
-        _clearSecondaryFields();
+        _isChangePasswordMode = false;
+        _passwordController.clear();
+        _oldPasswordController.clear();
+        _confirmPasswordController.clear();
       });
     } catch (e) {
       if (!mounted) return;
@@ -115,69 +103,6 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
       );
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
-    }
-  }
-
-  Future<void> _submitChangePhone() async {
-    if (!_formKey.currentState!.validate()) return;
-    setState(() => _isSubmitting = true);
-    final auth = Provider.of<AuthProvider>(context, listen: false);
-    try {
-      await auth.changePhone(
-        _usernameController.text.trim(),
-        _passwordController.text.trim(),
-        _newPhoneController.text.trim(),
-      );
-
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Phone number updated successfully!"), backgroundColor: Colors.green),
-      );
-
-      setState(() {
-        _mode = _ScreenMode.login;
-        _clearSecondaryFields();
-      });
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString()), backgroundColor: const Color(0xFFEF233C)),
-      );
-    } finally {
-      if (mounted) setState(() => _isSubmitting = false);
-    }
-  }
-
-  String get _title {
-    switch (_mode) {
-      case _ScreenMode.changePassword: return 'Change Password';
-      case _ScreenMode.changePhone:    return 'Change Phone Number';
-      default:                          return 'Welcome back';
-    }
-  }
-
-  String get _subtitle {
-    switch (_mode) {
-      case _ScreenMode.changePassword: return 'Enter your details below';
-      case _ScreenMode.changePhone:    return 'Enter your credentials & new phone';
-      default:                          return 'Sign in to continue';
-    }
-  }
-
-  String get _buttonLabel {
-    switch (_mode) {
-      case _ScreenMode.changePassword: return 'Change Password';
-      case _ScreenMode.changePhone:    return 'Update Phone';
-      default:                          return 'Sign In';
-    }
-  }
-
-  VoidCallback? get _onSubmit {
-    if (_isSubmitting) return null;
-    switch (_mode) {
-      case _ScreenMode.changePassword: return _submitChangePassword;
-      case _ScreenMode.changePhone:    return _submitChangePhone;
-      default:                          return _submitLogin;
     }
   }
 
@@ -296,7 +221,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                               crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: [
                                 Text(
-                                  _title,
+                                  _isChangePasswordMode ? 'Change Password' : 'Welcome back',
                                   style: const TextStyle(
                                     fontSize: 22,
                                     fontWeight: FontWeight.w700,
@@ -305,7 +230,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
-                                  _subtitle,
+                                  _isChangePasswordMode ? 'Enter your details below' : 'Sign in to continue',
                                   style: const TextStyle(
                                     fontSize: 14,
                                     color: Color(0xFF6B7A9D),
@@ -313,22 +238,22 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                                 ),
                                 const SizedBox(height: 24),
 
-                                // Username
+                                // Username / Code
                                 _buildLabel('Username'),
                                 const SizedBox(height: 6),
                                 TextFormField(
                                   controller: _usernameController,
                                   decoration: const InputDecoration(
-                                    hintText: 'e.g. Siva',
+                                    hintText: 'e.g. admin',
                                     prefixIcon: Icon(Icons.person_outline, color: Color(0xFF4361EE)),
                                   ),
                                   validator: (v) =>
-                                      (v == null || v.trim().isEmpty) ? 'Username required' : null,
+                                      (v == null || v.trim().isEmpty) ? 'Username' : null,
                                 ),
                                 const SizedBox(height: 16),
 
-                                // ── Change Password fields ──
-                                if (_mode == _ScreenMode.changePassword) ...[
+                                if (_isChangePasswordMode) ...[
+                                  // Old Password
                                   _buildLabel('Current Password'),
                                   const SizedBox(height: 6),
                                   TextFormField(
@@ -345,9 +270,11 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                                         onPressed: () => setState(() => _obscureOldPassword = !_obscureOldPassword),
                                       ),
                                     ),
-                                    validator: (v) => (v == null || v.trim().isEmpty) ? 'Old password required' : null,
+                                    validator: (v) => (v == null || v.trim().isEmpty) ? 'Old Password required' : null,
                                   ),
                                   const SizedBox(height: 16),
+
+                                  // New Password
                                   _buildLabel('New Password'),
                                   const SizedBox(height: 6),
                                   TextFormField(
@@ -364,9 +291,11 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                                         onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
                                       ),
                                     ),
-                                    validator: (v) => (v == null || v.trim().isEmpty) ? 'New password required' : null,
+                                    validator: (v) => (v == null || v.trim().isEmpty) ? 'New Password required' : null,
                                   ),
                                   const SizedBox(height: 16),
+
+                                  // Confirm New Password
                                   _buildLabel('Confirm New Password'),
                                   const SizedBox(height: 6),
                                   TextFormField(
@@ -383,46 +312,10 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                                         onPressed: () => setState(() => _obscureConfirmPassword = !_obscureConfirmPassword),
                                       ),
                                     ),
-                                    validator: (v) => (v == null || v.trim().isEmpty) ? 'Confirm password required' : null,
+                                    validator: (v) => (v == null || v.trim().isEmpty) ? 'Confirm Password required' : null,
                                   ),
-                                ]
-
-                                // ── Change Phone fields ──
-                                else if (_mode == _ScreenMode.changePhone) ...[
-                                  _buildLabel('Password'),
-                                  const SizedBox(height: 6),
-                                  TextFormField(
-                                    controller: _passwordController,
-                                    obscureText: _obscurePassword,
-                                    decoration: InputDecoration(
-                                      hintText: 'Enter your password',
-                                      prefixIcon: const Icon(Icons.lock_outline, color: Color(0xFF4361EE)),
-                                      suffixIcon: IconButton(
-                                        icon: Icon(
-                                          _obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
-                                          color: const Color(0xFF6B7A9D),
-                                        ),
-                                        onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
-                                      ),
-                                    ),
-                                    validator: (v) => (v == null || v.trim().isEmpty) ? 'Password required' : null,
-                                  ),
-                                  const SizedBox(height: 16),
-                                  _buildLabel('New Phone Number'),
-                                  const SizedBox(height: 6),
-                                  TextFormField(
-                                    controller: _newPhoneController,
-                                    keyboardType: TextInputType.phone,
-                                    decoration: const InputDecoration(
-                                      hintText: 'Enter new phone number',
-                                      prefixIcon: Icon(Icons.phone_outlined, color: Color(0xFF4361EE)),
-                                    ),
-                                    validator: (v) => (v == null || v.trim().isEmpty) ? 'Phone number required' : null,
-                                  ),
-                                ]
-
-                                // ── Login password ──
-                                else ...[
+                                ] else ...[
+                                  // Password (Login)
                                   _buildLabel('Password'),
                                   const SizedBox(height: 6),
                                   TextFormField(
@@ -442,13 +335,13 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                                     validator: (v) => (v == null || v.trim().isEmpty) ? 'Password required' : null,
                                   ),
                                 ],
-
+                                
                                 const SizedBox(height: 28),
 
                                 SizedBox(
                                   height: 52,
                                   child: ElevatedButton(
-                                    onPressed: _onSubmit,
+                                    onPressed: _isSubmitting ? null : (_isChangePasswordMode ? _submitChangePassword : _submitLogin),
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: const Color(0xFF4361EE),
                                       foregroundColor: Colors.white,
@@ -463,63 +356,34 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                                             child: CircularProgressIndicator(
                                                 color: Colors.white, strokeWidth: 2.5))
                                         : Text(
-                                            _buttonLabel,
+                                            _isChangePasswordMode ? 'Change Password' : 'Sign In',
                                             style: const TextStyle(
                                                 fontSize: 16, fontWeight: FontWeight.w700),
                                           ),
                                   ),
                                 ),
-                                const SizedBox(height: 12),
+                                const SizedBox(height: 16),
 
-                                // ── Toggle links ──
-                                if (_mode == _ScreenMode.login) ...[
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      TextButton(
-                                        onPressed: () {
-                                          setState(() {
-                                            _mode = _ScreenMode.changePassword;
-                                            _clearSecondaryFields();
-                                          });
-                                        },
-                                        child: const Text(
-                                          'Change Password?',
-                                          style: TextStyle(color: Color(0xFF4361EE), fontWeight: FontWeight.w600, fontSize: 13),
-                                        ),
-                                      ),
-                                      const Text('·', style: TextStyle(color: Color(0xFF6B7A9D))),
-                                      TextButton(
-                                        onPressed: () {
-                                          setState(() {
-                                            _mode = _ScreenMode.changePhone;
-                                            _clearSecondaryFields();
-                                          });
-                                        },
-                                        child: const Text(
-                                          'Change Phone?',
-                                          style: TextStyle(color: Color(0xFF4361EE), fontWeight: FontWeight.w600, fontSize: 13),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ] else ...[
-                                  TextButton(
-                                    onPressed: () {
-                                      setState(() {
-                                        _mode = _ScreenMode.login;
-                                        _clearSecondaryFields();
-                                      });
-                                    },
-                                    child: const Text(
-                                      'Back to Login',
-                                      style: TextStyle(
-                                        color: Color(0xFF4361EE),
-                                        fontWeight: FontWeight.w600,
-                                      ),
+                                // Toggle Mode Button
+                                TextButton(
+                                  onPressed: () {
+                                    setState(() {
+                                      _isChangePasswordMode = !_isChangePasswordMode;
+                                      _passwordController.clear();
+                                      _oldPasswordController.clear();
+                                      _confirmPasswordController.clear();
+                                    });
+                                  },
+                                  child: Text(
+                                    _isChangePasswordMode 
+                                        ? 'Back to Login' 
+                                        : 'Change Password?',
+                                    style: const TextStyle(
+                                      color: Color(0xFF4361EE),
+                                      fontWeight: FontWeight.w600,
                                     ),
                                   ),
-                                ],
+                                ),
                               ],
                             ),
                           ),

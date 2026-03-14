@@ -17,7 +17,6 @@ const userSchema = new mongoose.Schema(
       trim: true,
     },
     passwordHash: { type: String, required: true },
-    phone: { type: String, default: null },
     role: {
       type: String,
       enum: ['admin', 'staff', 'client'],
