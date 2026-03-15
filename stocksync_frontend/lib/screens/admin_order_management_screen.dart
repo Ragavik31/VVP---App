@@ -17,7 +17,6 @@ class AdminOrderManagementScreen extends StatefulWidget {
 class _AdminOrderManagementScreenState
     extends State<AdminOrderManagementScreen> {
   bool _isLoading = false;
-  bool _showCancelled = false;
   List<dynamic> _pendingOrders = [];
   List<dynamic> _staffMembers = [];
 
@@ -43,8 +42,7 @@ class _AdminOrderManagementScreenState
     setState(() => _isLoading = true);
 
     try {
-      final endpoint = _showCancelled ? '/orders/pending?status=cancelled' : '/orders/pending';
-      final ordersData = await ApiClient.get(endpoint);
+      final ordersData = await ApiClient.get('/orders/pending');
       if (ordersData['data'] != null) {
         _pendingOrders = ordersData['data'];
       }
@@ -272,34 +270,6 @@ class _AdminOrderManagementScreenState
 
     return Scaffold(
       backgroundColor: const Color(0xFFF0F4FF),
-      appBar: AppBar(
-        title: Text(_showCancelled ? 'Cancelled Orders' : 'Pending Orders', 
-            style: const TextStyle(color: Color(0xFF0D1B2A), fontSize: 18, fontWeight: FontWeight.w600)),
-        backgroundColor: Colors.white,
-        elevation: 0.5,
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 12),
-            child: TextButton.icon(
-              onPressed: () {
-                setState(() {
-                  _showCancelled = !_showCancelled;
-                  _loadData();
-                });
-              },
-              icon: Icon(_showCancelled ? Icons.list_alt_rounded : Icons.cancel_presentation_rounded, 
-                  size: 18, color: _showCancelled ? const Color(0xFF4361EE) : const Color(0xFFEF233C)),
-              label: Text(_showCancelled ? 'Pending' : 'Cancelled', 
-                  style: TextStyle(color: _showCancelled ? const Color(0xFF4361EE) : const Color(0xFFEF233C), fontWeight: FontWeight.w700)),
-              style: TextButton.styleFrom(
-                backgroundColor: _showCancelled ? const Color(0xFFEEF2FF) : const Color(0xFFFFE8EC),
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-            ),
-          )
-        ],
-      ),
       body: RefreshIndicator(
         color: const Color(0xFF4361EE),
         onRefresh: _loadData,
@@ -308,11 +278,10 @@ class _AdminOrderManagementScreenState
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(_showCancelled ? Icons.cancel_presentation_rounded : Icons.inbox_rounded, 
-                        size: 64, color: Colors.grey.shade300),
+                    Icon(Icons.inbox_rounded, size: 64, color: Colors.grey.shade300),
                     const SizedBox(height: 12),
-                    Text(_showCancelled ? 'No cancelled orders' : 'No pending orders',
-                        style: const TextStyle(color: Color(0xFF6B7A9D), fontSize: 16)),
+                    const Text('No pending orders',
+                        style: TextStyle(color: Color(0xFF6B7A9D), fontSize: 16)),
                   ],
                 ),
               )
@@ -444,8 +413,6 @@ class _AdminOrderManagementScreenState
                                       bgColor = const Color(0xFFE8F5E9); txtColor = const Color(0xFF4CAF50); label = '✔ Accepted by Staff';
                                     } else if (status == 'assigned') {
                                       bgColor = const Color(0xFFE8EDFF); txtColor = const Color(0xFF4361EE); label = 'Assigned';
-                                    } else if (status == 'cancelled') {
-                                      bgColor = const Color(0xFFFFE8EC); txtColor = const Color(0xFFEF233C); label = 'Cancelled';
                                     } else {
                                       bgColor = const Color(0xFFFFF8E1); txtColor = const Color(0xFFFFB703); label = 'Pending';
                                     }
@@ -458,8 +425,7 @@ class _AdminOrderManagementScreenState
                               ],
                             ),
                           ),
-                          if (!_showCancelled)
-                            Column(
+                          Column(
                               children: [
                                 if (order['status'] != 'accepted')
                                 IconButton(

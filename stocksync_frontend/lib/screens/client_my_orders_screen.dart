@@ -67,36 +67,6 @@ class _ClientMyOrdersScreenState extends State<ClientMyOrdersScreen> {
     }
   }
 
-  Future<void> _cancelOrder(String id) async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Cancel Order?', style: TextStyle(fontWeight: FontWeight.w700)),
-        content: const Text('Are you sure you want to cancel this order?'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('No')),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFEF233C)),
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Yes, Cancel', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
-          ),
-        ],
-      ),
-    );
-
-    if (confirm != true) return;
-
-    setState(() => _isLoading = true);
-    try {
-      await ApiClient.patch('/orders/$id/cancel', {});
-      _loadOrders();
-    } catch (e) {
-      if (mounted) {
-        setState(() => _isLoading = false);
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to cancel order: $e')));
-      }
-    }
-  }
   /// Build a short, readable Order ID based on position
   String _buildOrderId(Map<String, dynamic> o, int index) {
     // Since orders are sorted newest first (_id: -1), index 0 is the newest.
@@ -260,16 +230,6 @@ class _ClientMyOrdersScreenState extends State<ClientMyOrdersScreen> {
                         style: TextStyle(
                             fontSize: 12, color: statusData.$1, fontWeight: FontWeight.w600)),
                   ),
-                  if (status != 'delivered' && status != 'cancelled' && status != 'rejected' && paymentMethod == 'cash')
-                    GestureDetector(
-                      onTap: () => _cancelOrder(o['_id']),
-                      child: Container(
-                        margin: const EdgeInsets.only(left: 6),
-                        padding: const EdgeInsets.all(4),
-                        decoration: BoxDecoration(color: const Color(0xFFFFE8EC), borderRadius: BorderRadius.circular(8)),
-                        child: const Icon(Icons.close_rounded, size: 16, color: Color(0xFFEF233C)),
-                      ),
-                    ),
                   const SizedBox(width: 4),
                   AnimatedRotation(
                     turns: isExpanded ? 0.5 : 0,
