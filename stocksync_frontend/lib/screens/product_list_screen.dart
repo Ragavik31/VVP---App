@@ -62,12 +62,17 @@ class _ProductListScreenState extends State<ProductListScreen> {
     });
 
     try {
-      final data = await ApiClient.get('/products');
-      if (data is List) {
-        setState(() {
-          _products = data;
-        });
+      final resp = await ApiClient.get('/products');
+      List<dynamic> productsList = [];
+      if (resp is Map<String, dynamic>) {
+        final d = resp['data'];
+        if (d is List) productsList = d;
+      } else if (resp is List) {
+        productsList = resp;
       }
+      setState(() {
+        _products = productsList;
+      });
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

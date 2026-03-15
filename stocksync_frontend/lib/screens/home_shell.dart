@@ -28,14 +28,14 @@ class _HomeShellState extends State<HomeShell> {
     ];
     final isStaff = auth.currentUser?.role == 'staff';
     if (isStaff) return const [DashboardScreen(), StaffOrderManagementScreen(), VaccineListScreen()];
-    return const [DashboardScreen(), AdminOrderManagementScreen(), ClientListScreen(), VaccineListScreen(), AdminSalesAnalyticsScreen()];
+    return const [DashboardScreen(), AdminOrderManagementScreen(), ClientListScreen(), VaccineListScreen()];
   }
 
   List<String> get _titles {
     final auth = Provider.of<AuthProvider>(context, listen: false);
     if (auth.currentUser?.role == 'client') return ['Dashboard', 'Vaccines'];
     if (auth.currentUser?.role == 'staff') return ['Dashboard', 'Orders', 'Vaccines'];
-    return ['Dashboard', 'Orders', 'Clients', 'Vaccines', 'Sales'];
+    return ['Dashboard', 'Orders', 'Clients', 'Vaccines'];
   }
 
   List<_NavItem> get _navDefs {
@@ -58,7 +58,6 @@ class _HomeShellState extends State<HomeShell> {
       _NavItem(Icons.assignment_rounded, Icons.assignment, 'Orders'),
       _NavItem(Icons.people_alt_rounded, Icons.people, 'Clients'),
       _NavItem(Icons.vaccines_rounded, Icons.vaccines, 'Vaccines'),
-      _NavItem(Icons.analytics_rounded, Icons.analytics, 'Sales'),
     ];
   }
 

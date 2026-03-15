@@ -268,7 +268,7 @@ class _AdminSalesAnalyticsScreenState extends State<AdminSalesAnalyticsScreen> {
       mainAxisSpacing: 12,
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      childAspectRatio: 1.4,
+      childAspectRatio: 1.15,
       children: [
         _buildStatCard(
           title: 'Total Revenue',
@@ -321,9 +321,10 @@ class _AdminSalesAnalyticsScreenState extends State<AdminSalesAnalyticsScreen> {
       ),
       margin: EdgeInsets.zero,
       child: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(14.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Row(
               children: [
@@ -337,14 +338,14 @@ class _AdminSalesAnalyticsScreenState extends State<AdminSalesAnalyticsScreen> {
                 ),
               ],
             ),
-            const SizedBox(height: 16),
+            const Spacer(),
             Text(
               value,
               style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: textColor),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 2),
             Text(
               title,
               style: TextStyle(
