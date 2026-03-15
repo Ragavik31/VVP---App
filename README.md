@@ -1,54 +1,60 @@
-# StockSync - Vaccine & Order Management System
+# StockSync - Order & Inventory Management System
 
-A full-stack application for managing vaccine inventory, client accounts, and orders with real-time updates using WebSockets.
+A full-stack application for managing inventory, client accounts, staff assignments, and orders with real-time updates using WebSockets and in-depth admin analytics.
 
 ## Tech Stack
 
 ### Backend
 - **Runtime**: Node.js
 - **Framework**: Express.js
-- **Database**: MongoDB
+- **Database**: MongoDB (Mongoose)
 - **Real-time Communication**: Socket.io
-- **Authentication**: JWT (JSON Web Tokens)
+- **Authentication**: JWT (JSON Web Tokens) with role-based access control
 
 ### Frontend
 - **Framework**: Flutter
 - **Language**: Dart
 - **Platform Support**: iOS, Android, Web, Linux, macOS, Windows
 
+---
+
 ## Project Structure
 
 ```
-ConsultancyProject_1/
-├── backend/                          # Node.js Express API
+StockSync---App/
+├── backend/                              # Node.js Express API
 │   ├── src/
-│   │   ├── app.js                   # Express app configuration
-│   │   ├── server.js                # Server entry point
+│   │   ├── app.js                       # Express app configuration
+│   │   ├── server.js                    # Server entry point
 │   │   ├── config/
-│   │   │   └── db.js                # Database configuration
-│   │   ├── controllers/             # Business logic
-│   │   │   ├── auth.controller.js
-│   │   │   ├── client.controller.js
-│   │   │   ├── order.controller.js
-│   │   │   ├── product.controller.js
-│   │   │   └── vaccine.controller.js
-│   │   ├── models/                  # MongoDB schemas
+│   │   │   └── db.js                    # MongoDB connection
+│   │   ├── controllers/                 # Business logic
+│   │   │   ├── analytics.controller.js  # Sales & KPI analytics
+│   │   │   ├── auth.controller.js       # Auth, user, phone mgmt
+│   │   │   ├── client.controller.js     # Client CRUD
+│   │   │   ├── order.controller.js      # Order lifecycle
+│   │   │   ├── payment.controller.js    # Payment processing
+│   │   │   ├── product.controller.js    # Product CRUD
+│   │   │   └── vaccine.controller.js    # Vaccine inventory
+│   │   ├── models/                      # MongoDB schemas
 │   │   │   ├── user.model.js
 │   │   │   ├── client.model.js
-│   │   │   ├── vaccine.model.js
 │   │   │   ├── order.model.js
-│   │   │   └── product.model.js
-│   │   ├── routes/                  # API endpoints
+│   │   │   ├── product.model.js
+│   │   │   └── vaccine.model.js
+│   │   ├── routes/                      # API endpoints
+│   │   │   ├── analytics.routes.js
 │   │   │   ├── auth.routes.js
 │   │   │   ├── client.routes.js
-│   │   │   ├── vaccine.routes.js
 │   │   │   ├── order.routes.js
-│   │   │   └── product.routes.js
-│   │   ├── middlewares/             # Custom middleware
-│   │   │   └── auth.middleware.js
+│   │   │   ├── payment.routes.js
+│   │   │   ├── product.routes.js
+│   │   │   └── vaccine.routes.js
+│   │   ├── middlewares/
+│   │   │   └── auth.middleware.js       # JWT auth + role guard
 │   │   └── utils/
-│   │       └── socket.js            # WebSocket configuration
-│   ├── scripts/                      # Utility scripts
+│   │       └── socket.js               # WebSocket configuration
+│   ├── scripts/                         # Utility/seed scripts
 │   │   ├── seed-clients-and-users.js
 │   │   ├── seed-clients.js
 │   │   ├── seed-vaccines.js
@@ -59,45 +65,82 @@ ConsultancyProject_1/
 │   ├── package.json
 │   └── .gitignore
 │
-└── stocksync_frontend/              # Flutter mobile application
+└── stocksync_frontend/                  # Flutter application
     ├── lib/
-    │   ├── main.dart                # Application entry point
-    │   ├── api_client.dart          # API communication
-    │   ├── auth/                    # Authentication screens/logic
-    │   ├── models/                  # Dart data models
-    │   ├── screens/                 # UI screens
-    │   └── services/                # Business logic services
+    │   ├── main.dart                    # App entry point
+    │   ├── api_client.dart              # HTTP & API communication
+    │   ├── auth/
+    │   │   └── auth_provider.dart       # Auth state management
+    │   ├── models/
+    │   │   └── app_user.dart            # User model
+    │   ├── providers/                   # State providers
+    │   ├── services/                    # Business logic services
+    │   ├── theme/                       # App theming
+    │   └── screens/
+    │       ├── login_screen.dart                    # Unified login (Admin/Staff/Client)
+    │       ├── home_shell.dart                      # Navigation shell
+    │       ├── dashboard_screen.dart                # Admin dashboard
+    │       ├── admin_order_management_screen.dart    # Admin order control
+    │       ├── admin_sales_analytics_screen.dart     # Sales KPIs & analytics
+    │       ├── client_dashboard_screen.dart          # Client overview
+    │       ├── client_home_screen.dart               # Client home
+    │       ├── client_list_screen.dart               # Admin client list
+    │       ├── client_form_screen.dart               # Add/edit client
+    │       ├── client_my_orders_screen.dart          # Client order history
+    │       ├── client_order_placement_screen.dart    # Place new order
+    │       ├── product_list_screen.dart              # Product inventory
+    │       ├── product_form_screen.dart              # Add/edit product
+    │       ├── staff_order_management_screen.dart    # Staff order handling
+    │       ├── vaccine_list_screen.dart              # Vaccine inventory
+    │       └── vaccine_form_page.dart                # Add/edit vaccine
     ├── test/
     │   └── widget_test.dart
-    ├── android/                     # Android-specific configuration
-    ├── ios/                         # iOS-specific configuration
-    ├── web/                         # Web build configuration
-    ├── windows/                     # Windows build configuration
-    ├── linux/                       # Linux build configuration
-    ├── macos/                       # macOS build configuration
-    ├── pubspec.yaml                 # Flutter dependencies
-    ├── analysis_options.yaml        # Lint rules
+    ├── android/
+    ├── ios/
+    ├── web/
+    ├── windows/
+    ├── linux/
+    ├── macos/
+    ├── pubspec.yaml
     └── .gitignore
 ```
 
+---
+
 ## Features
 
-- **Unified Authentication**: Single secure login screen for Admin, Staff, and Clients using JWT.
-- **Admin Dashboard & Analytics**: Live tracking of KPIs (Revenue, Outstanding Collections, Staff Efficiency), Top Clients, and Top Products with CSV export support.
-- **Order Management & Fulfillment**: Full pipeline from Client order placement to Staff assignment, acceptance, and delivery.
-- **Collection Tracker**: Highlights upcoming and overdue cash payments within a 7-day window.
-- **Client Management**: Create, manage, and assign custom entry codes for client accounts.
-- **Vaccine/Product Inventory**: Track stock, availability, and pricing.
-- **Real-time Sync**: Instant WebSocket integration (Socket.io) for order assignments, status updates, and new orders without manual refreshing.
+### 👑 Admin
+- **Sales Analytics Dashboard**: Live KPIs — Total Revenue, Outstanding Receivables, Active Staff Load; Top 5 Products, Top Clients by Spend, Staff Efficiency (avg. acceptance time & order volume), with date-range filtering and CSV export.
+- **Order Management**: View all orders, assign to staff, update statuses, track payment (cash/online), and delete orders.
+- **Client Management**: Create, edit, and manage client accounts with custom entry codes.
+- **Product & Vaccine Inventory**: Full CRUD for products and vaccines with stock tracking.
+- **Collection Tracker**: Highlights upcoming and overdue cash payments.
+
+### 🧑‍🔧 Staff
+- **Order Handling**: View assigned orders, accept them, and update delivery status.
+- **Real-time Notifications**: Instant Socket.io push when a new order is assigned.
+
+### 🛒 Client
+- **Order Placement**: Browse products/vaccines and place orders with cash or online payment.
+- **Order Tracking**: View order history, statuses, and assigned staff contact details.
+- **Account Management**: Change phone number directly from the dashboard.
+- **Due-Soon Alerts**: View approaching payment due dates within a 7-day window.
+
+### 🔌 Real-time (Socket.io)
+- Order status updates pushed instantly to all relevant parties
+- New order notifications for admin and staff
+- Inventory change broadcasts
+
+---
 
 ## Getting Started
 
 ### Prerequisites
 
 - Node.js (v14 or higher)
-- npm or yarn
-- Flutter SDK
-- MongoDB (local or cloud instance)
+- npm
+- Flutter SDK (stable channel)
+- MongoDB (local or Atlas cloud instance)
 
 ### Backend Setup
 
@@ -112,16 +155,15 @@ ConsultancyProject_1/
    ```
 
 3. **Configure environment variables**
-   Create a `.env` file in the `backend` directory:
-   ```
+   Create a `.env` file in the `backend/` directory:
+   ```env
    PORT=5000
    MONGODB_URI=mongodb://localhost:27017/stocksync
    JWT_SECRET=your_secret_key_here
    NODE_ENV=development
    ```
 
-4. **Initialize database (optional)**
-   Run seed scripts to populate initial data:
+4. **Seed the database (optional)**
    ```bash
    npm run seed-clients
    npm run seed-vaccines
@@ -132,7 +174,7 @@ ConsultancyProject_1/
    ```bash
    npm start
    ```
-   The API will be available at `http://localhost:5000`
+   API available at `http://localhost:5000`
 
 ### Frontend Setup
 
@@ -141,150 +183,174 @@ ConsultancyProject_1/
    cd stocksync_frontend
    ```
 
-2. **Get Flutter dependencies**
+2. **Install Flutter dependencies**
    ```bash
    flutter pub get
    ```
 
-3. **Configure API endpoint**
-   Update the API client configuration to point to your backend:
-   - Edit `lib/api_client.dart`
-   - Set the `baseURL` to your backend server address
+3. **Configure the API endpoint**
+   Edit `lib/api_client.dart` and set the `baseURL` to your backend server address.
 
 4. **Run the application**
    ```bash
-   # For Android
+   # Android
    flutter run -d android
 
-   # For iOS
+   # iOS
    flutter run -d ios
 
-   # For Web
-   flutter run -d web
+   # Web
+   flutter run -d chrome
 
-   # For specific device
-   flutter run -d <device_id>
+   # Any connected device
+   flutter run
    ```
+
+---
 
 ## API Endpoints
 
-### Authentication
-- `POST /api/auth/register` - Register new user
-- `POST /api/auth/login` - User login
-- `POST /api/auth/logout` - User logout
+### Authentication (`/api/auth`)
+| Method | Endpoint | Access | Description |
+|--------|----------|--------|-------------|
+| POST | `/register` | Public | Register a new user |
+| POST | `/login` | Public | Login and receive JWT |
+| POST | `/change-password` | Public | Change user password |
+| PATCH | `/phone` | Authenticated | Update phone number |
+| GET | `/me` | Authenticated | Get current user info |
+| GET | `/users` | Authenticated | Get all users |
+| GET | `/users/by-role` | Authenticated | Get users filtered by role |
 
-### Clients
-- `GET /api/clients` - Get all clients
-- `POST /api/clients` - Create new client
-- `GET /api/clients/:id` - Get client details
-- `PUT /api/clients/:id` - Update client
-- `DELETE /api/clients/:id` - Delete client
+### Orders (`/api/orders`)
+| Method | Endpoint | Access | Description |
+|--------|----------|--------|-------------|
+| POST | `/` | Client | Place a new order |
+| GET | `/` | All | Get orders (filtered by role) |
+| GET | `/pending` | Admin | Get all pending orders |
+| GET | `/due-soon` | Client | Get orders with upcoming payments |
+| PATCH | `/:id/status` | Admin, Staff | Update order status |
+| PATCH | `/:id/payment` | Admin, Staff | Update payment status |
+| PATCH | `/:id/assign` | Admin | Assign order to staff |
+| PATCH | `/:id/accept` | Staff | Accept an assigned order |
+| DELETE | `/:id` | Admin | Delete an order |
 
-### Vaccines
-- `GET /api/vaccines` - Get all vaccines
-- `POST /api/vaccines` - Create new vaccine
-- `GET /api/vaccines/:id` - Get vaccine details
-- `PUT /api/vaccines/:id` - Update vaccine
-- `DELETE /api/vaccines/:id` - Delete vaccine
+### Clients (`/api/clients`)
+| Method | Endpoint | Access | Description |
+|--------|----------|--------|-------------|
+| GET | `/` | Admin | List all clients |
+| POST | `/` | Admin | Create a new client |
+| GET | `/:id` | Admin | Get a client's details |
+| PUT | `/:id` | Admin | Update a client |
+| DELETE | `/:id` | Admin | Delete a client |
 
-### Orders
-- `GET /api/orders` - Get all orders
-- `POST /api/orders` - Create new order
-- `GET /api/orders/:id` - Get order details
-- `PUT /api/orders/:id` - Update order
-- `DELETE /api/orders/:id` - Delete order
+### Products (`/api/products`)
+| Method | Endpoint | Access | Description |
+|--------|----------|--------|-------------|
+| GET | `/` | All | List all products |
+| POST | `/` | Admin | Create a new product |
+| GET | `/:id` | All | Get product details |
+| PUT | `/:id` | Admin | Update a product |
+| DELETE | `/:id` | Admin | Delete a product |
 
-### Products
-- `GET /api/products` - Get all products
-- `POST /api/products` - Create new product
-- `GET /api/products/:id` - Get product details
-- `PUT /api/products/:id` - Update product
-- `DELETE /api/products/:id` - Delete product
+### Vaccines (`/api/vaccines`)
+| Method | Endpoint | Access | Description |
+|--------|----------|--------|-------------|
+| GET | `/` | All | List all vaccines |
+| POST | `/` | Admin | Create a new vaccine |
+| GET | `/:id` | All | Get vaccine details |
+| PUT | `/:id` | Admin | Update a vaccine |
+| DELETE | `/:id` | Admin | Delete a vaccine |
+
+### Analytics (`/api/analytics`)
+| Method | Endpoint | Access | Description |
+|--------|----------|--------|-------------|
+| GET | `/` | Admin | Full analytics dashboard data |
+
+### Payments (`/api/payments`)
+| Method | Endpoint | Access | Description |
+|--------|----------|--------|-------------|
+| POST | `/create-order` | Authenticated | Initiate a payment order |
+| POST | `/verify` | Authenticated | Verify a completed payment |
+
+---
 
 ## Available Scripts
 
-### Backend Scripts
+### Backend
 ```bash
-npm start              # Start the server
-npm test              # Run tests
-npm run seed-clients  # Seed client data
-npm run seed-vaccines # Seed vaccine data
-npm run setup-users   # Setup default users
-npm run smoke-test    # Run smoke tests
+npm start              # Start the server (nodemon)
+npm run seed-clients   # Seed client data
+npm run seed-vaccines  # Seed vaccine data
+npm run setup-users    # Setup default admin/staff users
+npm run smoke-test     # Run smoke tests
 ```
+
+---
 
 ## Database Models
 
 ### User
-- username
-- email
-- password (hashed)
-- role (admin, user, client)
-- createdAt
-- updatedAt
+| Field | Type | Notes |
+|-------|------|-------|
+| username | String | Unique login name |
+| password | String | Bcrypt hashed |
+| role | String | `admin`, `staff`, `client` |
+| phone | String | Contact number |
 
 ### Client
-- name
-- email
-- phone
-- address
-- registrationDate
-- status
-
-### Vaccine
-- name
-- manufacturer
-- batchNumber
-- expiryDate
-- quantity
-- price
-- description
+| Field | Type | Notes |
+|-------|------|-------|
+| name | String | |
+| phone | String | |
+| address | String | |
+| entryCode | String | Unique login code |
+| status | String | Active/Inactive |
 
 ### Order
-- clientId / clientName / clientCode
-- items (products/vaccines with quantities)
-- totalPrice
-- status (pending, assigned, accepted, delivered, cancelled)
-- paymentMethod (cash, online)
-- paymentStatus (paid, unpaid)
-- paymentDueDate
-- assignedTo (Staff ID)
-- timestamps (createdAt, assignedAt, acceptedAt, deliveredAt)
+| Field | Type | Notes |
+|-------|------|-------|
+| clientId / clientName | Ref / String | |
+| items | Array | Products/vaccines with qty & price |
+| totalPrice | Number | |
+| status | String | `pending` → `assigned` → `accepted` → `delivered` |
+| paymentMethod | String | `cash` or `online` |
+| paymentStatus | String | `paid` or `unpaid` |
+| paymentDueDate | Date | |
+| assignedTo | Ref (User) | Staff assigned |
+| timestamps | Date | `createdAt`, `assignedAt`, `acceptedAt`, `deliveredAt` |
 
 ### Product
-- name
-- description
-- price
-- quantity
-- category
+| Field | Type |
+|-------|------|
+| name | String |
+| description | String |
+| price | Number |
+| quantity | Number |
+| category | String |
 
-## Real-time Features
+### Vaccine
+| Field | Type |
+|-------|------|
+| name | String |
+| manufacturer | String |
+| batchNumber | String |
+| expiryDate | Date |
+| quantity | Number |
+| price | Number |
 
-The application uses Socket.io for real-time communication. Connected clients receive instant updates for:
-- Order status changes
-- Inventory updates
-- New client registrations
-- Product availability changes
+---
 
 ## Troubleshooting
 
-### Backend Issues
-- **MongoDB Connection Error**: Ensure MongoDB is running and connection string is correct in `.env`
-- **Port Already in Use**: Change the PORT in `.env` file
-- **Module Not Found**: Run `npm install` to ensure all dependencies are installed
+### Backend
+- **MongoDB Connection Error**: Check MongoDB is running and `MONGODB_URI` in `.env` is correct.
+- **Port Already in Use**: Change `PORT` in `.env`.
+- **Module Not Found**: Run `npm install`.
 
-### Frontend Issues
-- **API Connection Error**: Verify the backend is running and API endpoint is correctly configured
-- **Build Errors**: Run `flutter clean` and `flutter pub get`
-- **Device Not Found**: Run `flutter devices` to list available devices
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+### Frontend
+- **API Connection Error**: Confirm backend is running and `baseURL` in `api_client.dart` is correct.
+- **Build Errors**: Run `flutter clean && flutter pub get`.
+- **Device Not Found**: Run `flutter devices` to list connected devices.
 
 ---
 
