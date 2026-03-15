@@ -241,51 +241,6 @@ const updatePaymentStatus = async (req, res) => {
 
 
 // ======================================================
-// CANCEL ORDER (CLIENT)
-// ======================================================
-const cancelOrder = async (req, res) => {
-  try {
-    const order = await Order.findById(req.params.id);
-    if (!order) return res.status(404).json({ success: false, message: 'Order not found' });
-
-    if (order.clientId.toString() !== req.user._id.toString()) {
-      return res.status(403).json({ success: false, message: 'Not authorized to cancel this order' });
-    }
-
-    if (order.status === 'delivered') {
-      return res.status(400).json({ success: false, message: 'Cannot cancel a delivered order' });
-    }
-    
-    // Only allow offline (cash) orders to be cancelled if requested
-    if (order.paymentMethod === 'online') {
-      return res.status(400).json({ success: false, message: 'Online paid orders cannot be cancelled directly' });
-    }
-
-    // 🔥 RESTORE STOCK
-    if (order.status !== 'cancelled' && order.status !== 'rejected') {
-      for (const item of order.items) {
-        await Product.findByIdAndUpdate(
-          item.vaccineId,
-          { $inc: { quantity: item.quantity } }
-        );
-      }
-    }
-
-    order.status = 'cancelled';
-    order.cancelledAt = new Date();
-    await order.save();
-
-    socketUtil.getIO().emit('order:status_changed', { ...order.toObject(), statusLabel: 'cancelled' });
-    res.json({ success: true, data: order });
-
-  } catch (err) {
-    console.error('cancelOrder error:', err);
-    res.status(500).json({ success: false, message: 'Failed to cancel order' });
-  }
-};
-
-
-// ======================================================
 // DELETE ORDER (RESTORE STOCK)
 // ======================================================
 const deleteOrder = async (req, res) => {
@@ -317,9 +272,6 @@ const getPendingOrders = async (req, res) => {
     const skip = (page - 1) * limit;
 
     let filter = { status: { $in: ['pending', 'assigned', 'accepted', 'delivered'] } };
-    if (req.query.status === 'cancelled') {
-      filter = { status: 'cancelled' };
-    }
 
     const [orders, total] = await Promise.all([
       Order.find(filter)
@@ -387,7 +339,6 @@ module.exports = {
   getOrders,
   updateOrderStatus,
   updatePaymentStatus,
-  cancelOrder,
   deleteOrder,
   assignOrder,
   acceptOrder,
