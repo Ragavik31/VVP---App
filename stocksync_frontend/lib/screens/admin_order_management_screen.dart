@@ -5,7 +5,6 @@ import 'package:intl/intl.dart';
 import '../api_client.dart';
 import '../auth/auth_provider.dart';
 import '../services/socket_service.dart';
-import 'cancelled_orders_screen.dart';
 
 class AdminOrderManagementScreen extends StatefulWidget {
   const AdminOrderManagementScreen({super.key});
@@ -18,6 +17,7 @@ class AdminOrderManagementScreen extends StatefulWidget {
 class _AdminOrderManagementScreenState
     extends State<AdminOrderManagementScreen> {
   bool _isLoading = false;
+  bool _showCancelled = false;
   List<dynamic> _pendingOrders = [];
   List<dynamic> _staffMembers = [];
 
@@ -43,7 +43,8 @@ class _AdminOrderManagementScreenState
     setState(() => _isLoading = true);
 
     try {
-      final ordersData = await ApiClient.get('/orders/pending');
+      final endpoint = _showCancelled ? '/orders/pending?status=cancelled' : '/orders/pending';
+      final ordersData = await ApiClient.get(endpoint);
       if (ordersData['data'] != null) {
         _pendingOrders = ordersData['data'];
       }
@@ -272,7 +273,8 @@ class _AdminOrderManagementScreenState
     return Scaffold(
       backgroundColor: const Color(0xFFF0F4FF),
       appBar: AppBar(
-        title: const Text('Pending Orders', style: TextStyle(color: Color(0xFF0D1B2A), fontSize: 18, fontWeight: FontWeight.w600)),
+        title: Text(_showCancelled ? 'Cancelled Orders' : 'Pending Orders', 
+            style: const TextStyle(color: Color(0xFF0D1B2A), fontSize: 18, fontWeight: FontWeight.w600)),
         backgroundColor: Colors.white,
         elevation: 0.5,
         actions: [
@@ -280,12 +282,17 @@ class _AdminOrderManagementScreenState
             padding: const EdgeInsets.only(right: 12),
             child: TextButton.icon(
               onPressed: () {
-                Navigator.push(context, MaterialPageRoute(builder: (_) => const CancelledOrdersScreen()));
+                setState(() {
+                  _showCancelled = !_showCancelled;
+                  _loadData();
+                });
               },
-              icon: const Icon(Icons.cancel_presentation_rounded, size: 18, color: Color(0xFFEF233C)),
-              label: const Text('Cancelled', style: TextStyle(color: Color(0xFFEF233C), fontWeight: FontWeight.w700)),
+              icon: Icon(_showCancelled ? Icons.list_alt_rounded : Icons.cancel_presentation_rounded, 
+                  size: 18, color: _showCancelled ? const Color(0xFF4361EE) : const Color(0xFFEF233C)),
+              label: Text(_showCancelled ? 'Pending' : 'Cancelled', 
+                  style: TextStyle(color: _showCancelled ? const Color(0xFF4361EE) : const Color(0xFFEF233C), fontWeight: FontWeight.w700)),
               style: TextButton.styleFrom(
-                backgroundColor: const Color(0xFFFFE8EC),
+                backgroundColor: _showCancelled ? const Color(0xFFEEF2FF) : const Color(0xFFFFE8EC),
                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
@@ -301,10 +308,11 @@ class _AdminOrderManagementScreenState
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.inbox_rounded, size: 64, color: Colors.grey.shade300),
+                    Icon(_showCancelled ? Icons.cancel_presentation_rounded : Icons.inbox_rounded, 
+                        size: 64, color: Colors.grey.shade300),
                     const SizedBox(height: 12),
-                    const Text('No pending orders',
-                        style: TextStyle(color: Color(0xFF6B7A9D), fontSize: 16)),
+                    Text(_showCancelled ? 'No cancelled orders' : 'No pending orders',
+                        style: const TextStyle(color: Color(0xFF6B7A9D), fontSize: 16)),
                   ],
                 ),
               )
@@ -436,6 +444,8 @@ class _AdminOrderManagementScreenState
                                       bgColor = const Color(0xFFE8F5E9); txtColor = const Color(0xFF4CAF50); label = '✔ Accepted by Staff';
                                     } else if (status == 'assigned') {
                                       bgColor = const Color(0xFFE8EDFF); txtColor = const Color(0xFF4361EE); label = 'Assigned';
+                                    } else if (status == 'cancelled') {
+                                      bgColor = const Color(0xFFFFE8EC); txtColor = const Color(0xFFEF233C); label = 'Cancelled';
                                     } else {
                                       bgColor = const Color(0xFFFFF8E1); txtColor = const Color(0xFFFFB703); label = 'Pending';
                                     }
@@ -448,9 +458,10 @@ class _AdminOrderManagementScreenState
                               ],
                             ),
                           ),
-                          Column(
-                            children: [
-                              if (order['status'] != 'accepted')
+                          if (!_showCancelled)
+                            Column(
+                              children: [
+                                if (order['status'] != 'accepted')
                                 IconButton(
                                   icon: Container(
                                     padding: const EdgeInsets.all(6),

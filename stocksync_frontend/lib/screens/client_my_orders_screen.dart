@@ -97,20 +97,12 @@ class _ClientMyOrdersScreenState extends State<ClientMyOrdersScreen> {
       }
     }
   }
-
-  /// Build a short, readable Order ID like "370-001"
+  /// Build a short, readable Order ID based on position
   String _buildOrderId(Map<String, dynamic> o, int index) {
-    final code = (o['clientCode'] ?? '').toString().trim();
-    final num = (index + 1).toString().padLeft(3, '0');
-    if (code.isNotEmpty) return '$code-$num';
-    // Fallback for old orders without clientCode
-    final clientName = (o['clientName'] ?? '').toString().trim();
-    final words = clientName
-        .split(RegExp(r'[\s.]+'))
-        .where((w) => w.isNotEmpty && RegExp(r'[a-zA-Z]').hasMatch(w))
-        .toList();
-    final initials = words.take(3).map((w) => w[0].toUpperCase()).join();
-    return '${initials.isEmpty ? 'ORD' : initials}-$num';
+    // Since orders are sorted newest first (_id: -1), index 0 is the newest.
+    // The oldest order will be #001. 
+    final num = (_orders.length - index).toString().padLeft(3, '0');
+    return 'Order #$num';
   }
 
   (Color, Color) _statusStyle(String status) {
