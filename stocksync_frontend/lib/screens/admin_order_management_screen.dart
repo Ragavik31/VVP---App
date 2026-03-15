@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../api_client.dart';
 import '../auth/auth_provider.dart';
 import '../services/socket_service.dart';
+import 'cancelled_orders_screen.dart';
 
 class AdminOrderManagementScreen extends StatefulWidget {
   const AdminOrderManagementScreen({super.key});
@@ -270,6 +271,28 @@ class _AdminOrderManagementScreenState
 
     return Scaffold(
       backgroundColor: const Color(0xFFF0F4FF),
+      appBar: AppBar(
+        title: const Text('Pending Orders', style: TextStyle(color: Color(0xFF0D1B2A), fontSize: 18, fontWeight: FontWeight.w600)),
+        backgroundColor: Colors.white,
+        elevation: 0.5,
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 12),
+            child: TextButton.icon(
+              onPressed: () {
+                Navigator.push(context, MaterialPageRoute(builder: (_) => const CancelledOrdersScreen()));
+              },
+              icon: const Icon(Icons.cancel_presentation_rounded, size: 18, color: Color(0xFFEF233C)),
+              label: const Text('Cancelled', style: TextStyle(color: Color(0xFFEF233C), fontWeight: FontWeight.w700)),
+              style: TextButton.styleFrom(
+                backgroundColor: const Color(0xFFFFE8EC),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+            ),
+          )
+        ],
+      ),
       body: RefreshIndicator(
         color: const Color(0xFF4361EE),
         onRefresh: _loadData,
@@ -441,19 +464,20 @@ class _AdminOrderManagementScreenState
                                   onPressed: () => _showAssignDialog(order),
                                   tooltip: 'Assign to Staff',
                                 ),
-                              IconButton(
-                                icon: Container(
-                                  padding: const EdgeInsets.all(6),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFFFE8EC),
-                                    borderRadius: BorderRadius.circular(8),
+                              if (order['status'] == 'pending')
+                                IconButton(
+                                  icon: Container(
+                                    padding: const EdgeInsets.all(6),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFFFE8EC),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: const Icon(Icons.delete_rounded,
+                                        color: Color(0xFFEF233C), size: 18),
                                   ),
-                                  child: const Icon(Icons.delete_rounded,
-                                      color: Color(0xFFEF233C), size: 18),
+                                  onPressed: () => _deleteOrder(order['_id']),
+                                  tooltip: 'Delete Order',
                                 ),
-                                onPressed: () => _deleteOrder(order['_id']),
-                                tooltip: 'Delete Order',
-                              ),
                             ],
                           ),
                         ],

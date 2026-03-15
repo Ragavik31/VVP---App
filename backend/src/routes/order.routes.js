@@ -6,6 +6,7 @@ const {
   getOrders,
   updateOrderStatus,
   updatePaymentStatus,
+  cancelOrder,
   deleteOrder,
   assignOrder,
   acceptOrder,
@@ -21,6 +22,7 @@ router.use(authenticate);
 router.post('/', authorize('client'), createOrder);
 router.get('/due-soon', authorize('client'), getDueSoonOrders);
 router.get('/', getOrders);
+router.patch('/:id/cancel', authorize('client'), cancelOrder);
 
 // 🟢 ADMIN
 router.get('/pending', authorize('admin'), getPendingOrders);
