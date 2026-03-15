@@ -56,6 +56,13 @@ class _VaccineListScreenState extends State<VaccineListScreen> {
       } else if (resp is List) {
         _vaccines = List<Map<String, dynamic>>.from(resp);
       }
+      _vaccines.sort((a, b) {
+        final qtyA = int.tryParse(a['quantity']?.toString() ?? '0') ?? 0;
+        final qtyB = int.tryParse(b['quantity']?.toString() ?? '0') ?? 0;
+        if (qtyA == 0 && qtyB > 0) return 1;
+        if (qtyA > 0 && qtyB == 0) return -1;
+        return 0; // alphabetical or other sort can be added here if needed
+      });
       _filtered = _vaccines;
     } catch (e) {
       if (!mounted) return;
@@ -302,12 +309,14 @@ class _VaccineListScreenState extends State<VaccineListScreen> {
                                     )
                                   else if (isClient)
                                     ElevatedButton.icon(
-                                      onPressed: () => _addToCart(v),
+                                      onPressed: qty > 0 ? () => _addToCart(v) : null,
                                       icon: const Icon(Icons.add_shopping_cart_rounded, size: 16),
-                                      label: const Text('Add'),
+                                      label: Text(qty > 0 ? 'Add' : 'Out of Stock'),
                                       style: ElevatedButton.styleFrom(
                                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                                         textStyle: const TextStyle(fontSize: 13),
+                                        backgroundColor: qty > 0 ? const Color(0xFF4361EE) : Colors.grey[300],
+                                        foregroundColor: qty > 0 ? Colors.white : Colors.grey[600],
                                       ),
                                     ),
                                 ],

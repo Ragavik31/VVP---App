@@ -340,15 +340,7 @@ class _AdminOrderManagementScreenState
                                 Text(order['clientName'] ?? 'Unknown',
                                     style: const TextStyle(
                                         fontWeight: FontWeight.w700, fontSize: 15, color: Color(0xFF0D1B2A))),
-                                const SizedBox(height: 2),
-                                Text(summary,
-                                    style: const TextStyle(fontSize: 12, color: Color(0xFF6B7A9D))),
-                                const SizedBox(height: 4),
-                                Text('₹${order['totalPrice']}',
-                                    style: const TextStyle(
-                                        fontWeight: FontWeight.w700,
-                                        color: Color(0xFF4361EE), fontSize: 14)),
-                                const SizedBox(height: 2),
+                                const SizedBox(height: 6),
                                 Row(
                                   children: [
                                     Icon(

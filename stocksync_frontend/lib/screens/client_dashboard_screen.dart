@@ -170,7 +170,7 @@ class _ClientDashboardScreenState extends State<ClientDashboardScreen> {
                             const Text('Total Amount Spent',
                                 style: TextStyle(color: Colors.white70, fontSize: 12)),
                             Text(
-                              '₹${_totalSpent.toStringAsFixed(2)}',
+                              _totalSpent.toStringAsFixed(2),
                               style: const TextStyle(
                                   color: Colors.white,
                                   fontSize: 22,

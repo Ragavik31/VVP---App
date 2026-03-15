@@ -5,6 +5,7 @@ const {
   createOrder,
   getOrders,
   updateOrderStatus,
+  updatePaymentStatus,
   deleteOrder,
   assignOrder,
   acceptOrder,
@@ -24,6 +25,7 @@ router.get('/', getOrders);
 // 🟢 ADMIN
 router.get('/pending', authorize('admin'), getPendingOrders);
 router.patch('/:id/status', authorize('admin', 'staff'), updateOrderStatus);
+router.patch('/:id/payment', authorize('admin', 'staff'), updatePaymentStatus);
 router.delete('/:id', authorize('admin'), deleteOrder);
 router.patch('/:id/assign', authorize('admin'), assignOrder);
 

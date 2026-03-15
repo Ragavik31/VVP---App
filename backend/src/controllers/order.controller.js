@@ -107,7 +107,7 @@ const getOrders = async (req, res) => {
 
     const orders = await Order.find(filter)
       .populate('items.vaccineId')
-      .sort({ createdAt: -1 });
+      .sort({ _id: -1 });
 
     res.json({ success: true, data: orders });
 
@@ -212,6 +212,35 @@ const updateOrderStatus = async (req, res) => {
 
 
 // ======================================================
+// UPDATE PAYMENT STATUS (ADMIN / STAFF)
+// ======================================================
+const updatePaymentStatus = async (req, res) => {
+  try {
+    const { paymentStatus } = req.body;
+    const order = await Order.findById(req.params.id);
+
+    if (!order) return res.status(404).json({ success: false, message: 'Order not found' });
+
+    order.paymentStatus = paymentStatus;
+    
+    // If marking as paid, you could optionally clear the due date or record the payment date
+    if (paymentStatus === 'paid') {
+      order.paymentDueDate = null;
+    }
+    
+    await order.save();
+
+    socketUtil.getIO().emit('order:status_changed', order);
+    res.json({ success: true, data: order });
+
+  } catch (err) {
+    console.error('updatePaymentStatus error:', err);
+    res.status(500).json({ success: false, message: 'Failed to update payment status' });
+  }
+};
+
+
+// ======================================================
 // DELETE ORDER (RESTORE STOCK)
 // ======================================================
 const deleteOrder = async (req, res) => {
@@ -248,7 +277,7 @@ const getPendingOrders = async (req, res) => {
       Order.find(filter)
         .populate('clientId', 'name email')
         .populate('items.vaccineId', 'vaccineName manufacturer')
-        .sort({ createdAt: -1 })
+        .sort({ _id: -1 })
         .skip(skip)
         .limit(limit),
       Order.countDocuments(filter)
@@ -309,6 +338,7 @@ module.exports = {
   createOrder,
   getOrders,
   updateOrderStatus,
+  updatePaymentStatus,
   deleteOrder,
   assignOrder,
   acceptOrder,

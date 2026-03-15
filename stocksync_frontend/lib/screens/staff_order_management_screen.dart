@@ -91,6 +91,27 @@ class _StaffOrderManagementScreenState
     }
   }
 
+  Future<void> _markAsPaid(String id) async {
+    try {
+      await ApiClient.patch('/orders/$id/payment', {'paymentStatus': 'paid'});
+      _loadAssignedOrders();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Order marked as Paid!'),
+            backgroundColor: Color(0xFF06D6A0),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to mark as paid: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
   Map<String, dynamic> _statusStyle(String status) {
     switch (status) {
       case 'assigned':
@@ -351,6 +372,19 @@ class _StaffOrderManagementScreenState
                                       ),
                                       child: Text(isAccepted ? 'Deliver' : 'Accept',
                                           style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+                                    )
+                                  else if (order['paymentStatus'] != 'paid' && order['paymentMethod'] == 'cash')
+                                    ElevatedButton(
+                                      onPressed: () => _markAsPaid(order['_id']),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: const Color(0xFF06D6A0),
+                                        foregroundColor: Colors.white,
+                                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                        elevation: 0,
+                                      ),
+                                      child: const Text('Mark Paid',
+                                          style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
                                     )
                                   else
                                     const Icon(Icons.check_circle, color: Color(0xFF4CAF50), size: 28),

@@ -54,7 +54,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
       if (!mounted) return;
       setState(() {
         _totalProductCount = vaccinesList.length; // ← full count
-        _recentVaccines = vaccinesList.take(5).toList();
+        
+        // Filter for out of stock vaccines
+        final outOfStock = vaccinesList.where((v) {
+          final qty = int.tryParse(v['quantity']?.toString() ?? '0') ?? 0;
+          return qty == 0;
+        }).toList();
+        
+        _recentVaccines = outOfStock.take(5).toList();
       });
       await _loadOrders();
     } catch (e) {
@@ -540,7 +547,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Recent Stock',
+        const Text('Out of Stock',
             style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w700,
@@ -555,7 +562,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               color: Colors.white,
               borderRadius: BorderRadius.circular(16),
             ),
-            child: const Text('No stock activity.', style: TextStyle(color: Color(0xFF6B7A9D))),
+            child: const Text('No out of stock items.', style: TextStyle(color: Color(0xFF6B7A9D))),
           )
         else
           Container(
@@ -576,9 +583,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 final v = entry.value as Map<String, dynamic>;
                 final name = v['vaccineName']?.toString() ?? v['productName']?.toString() ?? '';
                 final batch = v['batchNumber']?.toString() ?? '';
-                final rawQty = v['quantity'];
-                final qty = rawQty is num ? rawQty.toInt() : int.tryParse(rawQty?.toString() ?? '0') ?? 0;
-                final low = qty < 10;
                 final isLast = i == _recentVaccines.length - 1;
 
                 return Column(
@@ -589,13 +593,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         width: 40,
                         height: 40,
                         decoration: BoxDecoration(
-                          color: low ? const Color(0xFFFFF8E1) : const Color(0xFFEEF2FF),
+                          color: const Color(0xFFFFF8E1),
                           borderRadius: BorderRadius.circular(10),
                         ),
-                        child: Icon(
-                          Icons.vaccines_rounded,
+                        child: const Icon(
+                          Icons.warning_amber_rounded,
                           size: 20,
-                          color: low ? const Color(0xFFFFB703) : const Color(0xFF4361EE),
+                          color: Color(0xFFFFB703),
                         ),
                       ),
                       title: Text(name,
@@ -607,13 +611,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         mainAxisAlignment: MainAxisAlignment.center,
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
-                          Text('$qty units',
+                          const Text('0 units',
                               style: TextStyle(
                                   fontWeight: FontWeight.w700,
-                                  color: low ? const Color(0xFFFFB703) : const Color(0xFF0D1B2A))),
-                          if (low)
-                            const Text('Low Stock',
-                                style: TextStyle(fontSize: 11, color: Color(0xFFFFB703))),
+                                  color: Color(0xFFFFB703))),
+                          const Text('Out of Stock',
+                              style: TextStyle(fontSize: 11, color: Color(0xFFFFB703))),
                         ],
                       ),
                     ),
