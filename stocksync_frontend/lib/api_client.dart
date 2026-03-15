@@ -3,7 +3,6 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 class ApiClient {
-
   static String get _baseUrl {
     return 'https://stocksync-backend-rpnu.onrender.com/api/v1';
   }
