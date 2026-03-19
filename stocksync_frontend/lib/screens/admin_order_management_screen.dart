@@ -401,18 +401,21 @@ class _AdminOrderManagementScreenState
                                     Color bgColor; Color txtColor; String label;
                                     if (status == 'delivered') {
                                       bgColor = const Color(0xFFE8F5E9); txtColor = const Color(0xFF4CAF50);
+                                      final staffName = order['assignedStaffName']?.toString() ?? '';
                                       String deliveredStr = '';
                                       if (order['deliveredAt'] != null) {
                                         try {
                                           final d = DateTime.parse(order['deliveredAt'].toString()).toLocal();
-                                          deliveredStr = ' ${d.day}/${d.month}/${d.year} ${d.hour.toString().padLeft(2,'0')}:${d.minute.toString().padLeft(2,'0')}';
+                                          deliveredStr = ' · ${d.day}/${d.month}/${d.year} ${d.hour.toString().padLeft(2,'0')}:${d.minute.toString().padLeft(2,'0')}';
                                         } catch (_) {}
                                       }
-                                      label = '✔ Delivered$deliveredStr';
+                                      label = staffName.isNotEmpty
+                                          ? '✔ Delivered by $staffName$deliveredStr'
+                                          : '✔ Delivered$deliveredStr';
                                     } else if (status == 'accepted') {
                                       bgColor = const Color(0xFFE8F5E9); txtColor = const Color(0xFF4CAF50); label = '✔ Accepted by Staff';
                                     } else if (status == 'assigned') {
-                                      bgColor = const Color(0xFFE8EDFF); txtColor = const Color(0xFF4361EE); label = 'Assigned';
+                                      bgColor = const Color(0xFFE8EDFF); txtColor = const Color(0xFF4361EE); label = '🔒 Assigned to ${order['assignedStaffName'] ?? 'Staff'}';
                                     } else {
                                       bgColor = const Color(0xFFFFF8E1); txtColor = const Color(0xFFFFB703); label = 'Pending';
                                     }
@@ -427,7 +430,7 @@ class _AdminOrderManagementScreenState
                           ),
                           Column(
                               children: [
-                                if (order['status'] != 'accepted')
+                                if (order['status'] == 'pending')
                                 IconButton(
                                   icon: Container(
                                     padding: const EdgeInsets.all(6),

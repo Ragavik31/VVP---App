@@ -132,6 +132,13 @@ const assignOrder = async (req, res) => {
     const order = await Order.findById(id);
     if (!order) return res.status(404).json({ success: false, message: 'Order not found' });
 
+    if (order.status !== 'pending') {
+      return res.status(400).json({
+        success: false,
+        message: `Cannot re-assign an order that is already '${order.status}'`,
+      });
+    }
+
     // Look up staff phone
     const staffUser = await User.findById(staffId);
     const staffPhone = staffUser?.phone || '';
