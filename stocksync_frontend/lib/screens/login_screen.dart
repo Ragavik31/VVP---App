@@ -115,7 +115,8 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
         children: [
           // Background gradient
           Container(
-            height: size.height * 0.45,
+            width: double.infinity,
+            height: double.infinity,
             decoration: const BoxDecoration(
               gradient: LinearGradient(
                 colors: [Color(0xFF4361EE), Color(0xFF3A0CA3)],
@@ -156,248 +157,261 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
               opacity: _fadeAnim,
               child: SlideTransition(
                 position: _slideAnim,
-                child: SingleChildScrollView(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24),
-                    child: Column(
-                      children: [
-                        const SizedBox(height: 32),
-                        // VVP Logo
-                        Container(
-                          width: 200,
-                          height: 80,
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(16),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.15),
-                                blurRadius: 20,
-                                offset: const Offset(0, 8),
-                              ),
-                            ],
-                          ),
-                          padding: const EdgeInsets.all(8),
-                          child: Image.asset('assets/logo.png', fit: BoxFit.contain),
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    return SingleChildScrollView(
+                      physics: const BouncingScrollPhysics(),
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(
+                          minHeight: constraints.maxHeight,
                         ),
-                        const SizedBox(height: 14),
-                        const Text(
-                          'Venkateswara Vaccine Pharma',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w800,
-                            color: Colors.white,
-                            letterSpacing: -0.3,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'Wholesale Vaccine Distribution',
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: Colors.white.withOpacity(0.75),
-                          ),
-                        ),
-                        const SizedBox(height: 36),
-
-                        // Card
-                        Container(
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(24),
-                            boxShadow: [
-                              BoxShadow(
-                                color: const Color(0xFF4361EE).withOpacity(0.12),
-                                blurRadius: 40,
-                                offset: const Offset(0, 16),
-                              ),
-                            ],
-                          ),
-                          padding: const EdgeInsets.all(28),
-                          child: Form(
-                            key: _formKey,
+                        child: IntrinsicHeight(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 24),
                             child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              crossAxisAlignment: CrossAxisAlignment.center,
                               children: [
-                                Text(
-                                  _isChangePasswordMode ? 'Change Password' : 'Welcome back',
-                                  style: const TextStyle(
-                                    fontSize: 22,
-                                    fontWeight: FontWeight.w700,
-                                    color: Color(0xFF0D1B2A),
+                                const Spacer(flex: 2), // Pushes content down a bit
+                                // VVP Logo
+                                Container(
+                                  width: 200,
+                                  height: 80,
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(16),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.15),
+                                        blurRadius: 20,
+                                        offset: const Offset(0, 8),
+                                      ),
+                                    ],
+                                  ),
+                                  padding: const EdgeInsets.all(8),
+                                  child: Image.asset('assets/logo.png', fit: BoxFit.contain),
+                                ),
+                                const SizedBox(height: 14),
+                                const Text(
+                                  'Venkateswara Vaccine Pharma',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w800,
+                                    color: Colors.white,
+                                    letterSpacing: -0.3,
                                   ),
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
-                                  _isChangePasswordMode ? 'Enter your details below' : 'Sign in to continue',
-                                  style: const TextStyle(
-                                    fontSize: 14,
-                                    color: Color(0xFF6B7A9D),
+                                  'Wholesale Vaccine Distribution',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: Colors.white.withOpacity(0.75),
                                   ),
+                                ),
+                                const SizedBox(height: 36),
+
+                                // Card
+                                Container(
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(24),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: const Color(0xFF4361EE).withOpacity(0.12),
+                                        blurRadius: 40,
+                                        offset: const Offset(0, 16),
+                                      ),
+                                    ],
+                                  ),
+                                  padding: const EdgeInsets.all(28),
+                                  child: Form(
+                                    key: _formKey,
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                                      children: [
+                                        Text(
+                                          _isChangePasswordMode ? 'Change Password' : 'Welcome back',
+                                          style: const TextStyle(
+                                            fontSize: 22,
+                                            fontWeight: FontWeight.w700,
+                                            color: Color(0xFF0D1B2A),
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          _isChangePasswordMode ? 'Enter your details below' : 'Sign in to continue',
+                                          style: const TextStyle(
+                                            fontSize: 14,
+                                            color: Color(0xFF6B7A9D),
+                                          ),
+                                        ),
+                                        const SizedBox(height: 24),
+
+                                        // Username / Code
+                                        _buildLabel('Username'),
+                                        const SizedBox(height: 6),
+                                        TextFormField(
+                                          controller: _usernameController,
+                                          decoration: const InputDecoration(
+                                            hintText: 'e.g. admin',
+                                            prefixIcon: Icon(Icons.person_outline, color: Color(0xFF4361EE)),
+                                          ),
+                                          validator: (v) =>
+                                              (v == null || v.trim().isEmpty) ? 'Username' : null,
+                                        ),
+                                        const SizedBox(height: 16),
+
+                                        if (_isChangePasswordMode) ...[
+                                          // Old Password
+                                          _buildLabel('Current Password'),
+                                          const SizedBox(height: 6),
+                                          TextFormField(
+                                            controller: _oldPasswordController,
+                                            obscureText: _obscureOldPassword,
+                                            decoration: InputDecoration(
+                                              hintText: 'Enter current password',
+                                              prefixIcon: const Icon(Icons.lock_clock_outlined, color: Color(0xFF4361EE)),
+                                              suffixIcon: IconButton(
+                                                icon: Icon(
+                                                  _obscureOldPassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                                                  color: const Color(0xFF6B7A9D),
+                                                ),
+                                                onPressed: () => setState(() => _obscureOldPassword = !_obscureOldPassword),
+                                              ),
+                                            ),
+                                            validator: (v) => (v == null || v.trim().isEmpty) ? 'Old Password required' : null,
+                                          ),
+                                          const SizedBox(height: 16),
+
+                                          // New Password
+                                          _buildLabel('New Password'),
+                                          const SizedBox(height: 6),
+                                          TextFormField(
+                                            controller: _passwordController,
+                                            obscureText: _obscurePassword,
+                                            decoration: InputDecoration(
+                                              hintText: 'Enter new password',
+                                              prefixIcon: const Icon(Icons.lock_outline, color: Color(0xFF4361EE)),
+                                              suffixIcon: IconButton(
+                                                icon: Icon(
+                                                  _obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                                                  color: const Color(0xFF6B7A9D),
+                                                ),
+                                                onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                                              ),
+                                            ),
+                                            validator: (v) => (v == null || v.trim().isEmpty) ? 'New Password required' : null,
+                                          ),
+                                          const SizedBox(height: 16),
+
+                                          // Confirm New Password
+                                          _buildLabel('Confirm New Password'),
+                                          const SizedBox(height: 6),
+                                          TextFormField(
+                                            controller: _confirmPasswordController,
+                                            obscureText: _obscureConfirmPassword,
+                                            decoration: InputDecoration(
+                                              hintText: 'Confirm new password',
+                                              prefixIcon: const Icon(Icons.lock_reset_outlined, color: Color(0xFF4361EE)),
+                                              suffixIcon: IconButton(
+                                                icon: Icon(
+                                                  _obscureConfirmPassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                                                  color: const Color(0xFF6B7A9D),
+                                                ),
+                                                onPressed: () => setState(() => _obscureConfirmPassword = !_obscureConfirmPassword),
+                                              ),
+                                            ),
+                                            validator: (v) => (v == null || v.trim().isEmpty) ? 'Confirm Password required' : null,
+                                          ),
+                                        ] else ...[
+                                          // Password (Login)
+                                          _buildLabel('Password'),
+                                          const SizedBox(height: 6),
+                                          TextFormField(
+                                            controller: _passwordController,
+                                            obscureText: _obscurePassword,
+                                            decoration: InputDecoration(
+                                              hintText: 'Enter password',
+                                              prefixIcon: const Icon(Icons.lock_outline, color: Color(0xFF4361EE)),
+                                              suffixIcon: IconButton(
+                                                icon: Icon(
+                                                  _obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                                                  color: const Color(0xFF6B7A9D),
+                                                ),
+                                                onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                                              ),
+                                            ),
+                                            validator: (v) => (v == null || v.trim().isEmpty) ? 'Password required' : null,
+                                          ),
+                                        ],
+                                        
+                                        const SizedBox(height: 28),
+
+                                        SizedBox(
+                                          height: 52,
+                                          child: ElevatedButton(
+                                            onPressed: _isSubmitting ? null : (_isChangePasswordMode ? _submitChangePassword : _submitLogin),
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor: const Color(0xFF4361EE),
+                                              foregroundColor: Colors.white,
+                                              elevation: 0,
+                                              shape: RoundedRectangleBorder(
+                                                  borderRadius: BorderRadius.circular(12)),
+                                            ),
+                                            child: _isSubmitting
+                                                ? const SizedBox(
+                                                    width: 22,
+                                                    height: 22,
+                                                    child: CircularProgressIndicator(
+                                                        color: Colors.white, strokeWidth: 2.5))
+                                                : Text(
+                                                    _isChangePasswordMode ? 'Change Password' : 'Sign In',
+                                                    style: const TextStyle(
+                                                        fontSize: 16, fontWeight: FontWeight.w700),
+                                                  ),
+                                          ),
+                                        ),
+                                        const SizedBox(height: 16),
+
+                                        // Toggle Mode Button
+                                        TextButton(
+                                          onPressed: () {
+                                            setState(() {
+                                              _isChangePasswordMode = !_isChangePasswordMode;
+                                              _passwordController.clear();
+                                              _oldPasswordController.clear();
+                                              _confirmPasswordController.clear();
+                                            });
+                                          },
+                                          child: Text(
+                                            _isChangePasswordMode 
+                                                ? 'Back to Login' 
+                                                : 'Change Password?',
+                                            style: const TextStyle(
+                                              color: Color(0xFF4361EE),
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                                const Spacer(flex: 3), // Pushes bottom empty space down
+                                Text(
+                                  '© 2025 Venkateswara Vaccine Pharma. All rights reserved.',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(fontSize: 12, color: Colors.white.withOpacity(0.6)), // Note: Since the background might be light or dark depending on screen size, wait... the footer might fall outside the initial gradient. If it falls into the white area, we need black text. Actually, let's keep it 0xFF6B7A9D for contrast on white.
                                 ),
                                 const SizedBox(height: 24),
-
-                                // Username / Code
-                                _buildLabel('Username'),
-                                const SizedBox(height: 6),
-                                TextFormField(
-                                  controller: _usernameController,
-                                  decoration: const InputDecoration(
-                                    hintText: 'e.g. admin',
-                                    prefixIcon: Icon(Icons.person_outline, color: Color(0xFF4361EE)),
-                                  ),
-                                  validator: (v) =>
-                                      (v == null || v.trim().isEmpty) ? 'Username' : null,
-                                ),
-                                const SizedBox(height: 16),
-
-                                if (_isChangePasswordMode) ...[
-                                  // Old Password
-                                  _buildLabel('Current Password'),
-                                  const SizedBox(height: 6),
-                                  TextFormField(
-                                    controller: _oldPasswordController,
-                                    obscureText: _obscureOldPassword,
-                                    decoration: InputDecoration(
-                                      hintText: 'Enter current password',
-                                      prefixIcon: const Icon(Icons.lock_clock_outlined, color: Color(0xFF4361EE)),
-                                      suffixIcon: IconButton(
-                                        icon: Icon(
-                                          _obscureOldPassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
-                                          color: const Color(0xFF6B7A9D),
-                                        ),
-                                        onPressed: () => setState(() => _obscureOldPassword = !_obscureOldPassword),
-                                      ),
-                                    ),
-                                    validator: (v) => (v == null || v.trim().isEmpty) ? 'Old Password required' : null,
-                                  ),
-                                  const SizedBox(height: 16),
-
-                                  // New Password
-                                  _buildLabel('New Password'),
-                                  const SizedBox(height: 6),
-                                  TextFormField(
-                                    controller: _passwordController,
-                                    obscureText: _obscurePassword,
-                                    decoration: InputDecoration(
-                                      hintText: 'Enter new password',
-                                      prefixIcon: const Icon(Icons.lock_outline, color: Color(0xFF4361EE)),
-                                      suffixIcon: IconButton(
-                                        icon: Icon(
-                                          _obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
-                                          color: const Color(0xFF6B7A9D),
-                                        ),
-                                        onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
-                                      ),
-                                    ),
-                                    validator: (v) => (v == null || v.trim().isEmpty) ? 'New Password required' : null,
-                                  ),
-                                  const SizedBox(height: 16),
-
-                                  // Confirm New Password
-                                  _buildLabel('Confirm New Password'),
-                                  const SizedBox(height: 6),
-                                  TextFormField(
-                                    controller: _confirmPasswordController,
-                                    obscureText: _obscureConfirmPassword,
-                                    decoration: InputDecoration(
-                                      hintText: 'Confirm new password',
-                                      prefixIcon: const Icon(Icons.lock_reset_outlined, color: Color(0xFF4361EE)),
-                                      suffixIcon: IconButton(
-                                        icon: Icon(
-                                          _obscureConfirmPassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
-                                          color: const Color(0xFF6B7A9D),
-                                        ),
-                                        onPressed: () => setState(() => _obscureConfirmPassword = !_obscureConfirmPassword),
-                                      ),
-                                    ),
-                                    validator: (v) => (v == null || v.trim().isEmpty) ? 'Confirm Password required' : null,
-                                  ),
-                                ] else ...[
-                                  // Password (Login)
-                                  _buildLabel('Password'),
-                                  const SizedBox(height: 6),
-                                  TextFormField(
-                                    controller: _passwordController,
-                                    obscureText: _obscurePassword,
-                                    decoration: InputDecoration(
-                                      hintText: 'Enter password',
-                                      prefixIcon: const Icon(Icons.lock_outline, color: Color(0xFF4361EE)),
-                                      suffixIcon: IconButton(
-                                        icon: Icon(
-                                          _obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
-                                          color: const Color(0xFF6B7A9D),
-                                        ),
-                                        onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
-                                      ),
-                                    ),
-                                    validator: (v) => (v == null || v.trim().isEmpty) ? 'Password required' : null,
-                                  ),
-                                ],
-                                
-                                const SizedBox(height: 28),
-
-                                SizedBox(
-                                  height: 52,
-                                  child: ElevatedButton(
-                                    onPressed: _isSubmitting ? null : (_isChangePasswordMode ? _submitChangePassword : _submitLogin),
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: const Color(0xFF4361EE),
-                                      foregroundColor: Colors.white,
-                                      elevation: 0,
-                                      shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(12)),
-                                    ),
-                                    child: _isSubmitting
-                                        ? const SizedBox(
-                                            width: 22,
-                                            height: 22,
-                                            child: CircularProgressIndicator(
-                                                color: Colors.white, strokeWidth: 2.5))
-                                        : Text(
-                                            _isChangePasswordMode ? 'Change Password' : 'Sign In',
-                                            style: const TextStyle(
-                                                fontSize: 16, fontWeight: FontWeight.w700),
-                                          ),
-                                  ),
-                                ),
-                                const SizedBox(height: 16),
-
-                                // Toggle Mode Button
-                                TextButton(
-                                  onPressed: () {
-                                    setState(() {
-                                      _isChangePasswordMode = !_isChangePasswordMode;
-                                      _passwordController.clear();
-                                      _oldPasswordController.clear();
-                                      _confirmPasswordController.clear();
-                                    });
-                                  },
-                                  child: Text(
-                                    _isChangePasswordMode 
-                                        ? 'Back to Login' 
-                                        : 'Change Password?',
-                                    style: const TextStyle(
-                                      color: Color(0xFF4361EE),
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ),
                               ],
                             ),
                           ),
                         ),
-                        const SizedBox(height: 32),
-                        Text(
-                          '© 2025 Venkateswara Vaccine Pharma. All rights reserved.',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(fontSize: 12, color: Colors.white.withOpacity(0.6)),
-                        ),
-                        const SizedBox(height: 24),
-                      ],
-                    ),
-                  ),
+                      ),
+                    );
+                  },
                 ),
               ),
             ),

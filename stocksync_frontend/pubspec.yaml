@@ -36,9 +36,10 @@ flutter:
     - assets/logo_square.png
 
 flutter_native_splash:
-  color: "#ff0000"
-  image: assets/logo.png
+  color: "#4361EE"
   android: true
   ios: false
   fullscreen: true
+  android_12:
+    color: "#4361EE"
 

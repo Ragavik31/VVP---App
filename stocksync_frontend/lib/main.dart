@@ -8,6 +8,7 @@ import 'providers/cart_provider.dart';
 import 'screens/client_home_screen.dart';
 import 'screens/home_shell.dart';
 import 'screens/login_screen.dart';
+import 'screens/splash_screen.dart';
 
 void main() {
   FlutterError.onError = (FlutterErrorDetails details) {
@@ -22,8 +23,15 @@ void main() {
   });
 }
 
-class VVPApp extends StatelessWidget {
+class VVPApp extends StatefulWidget {
   const VVPApp({super.key});
+
+  @override
+  State<VVPApp> createState() => _VVPAppState();
+}
+
+class _VVPAppState extends State<VVPApp> {
+  bool _hasShownSplash = false;
 
   @override
   Widget build(BuildContext context) {
@@ -131,11 +139,19 @@ class VVPApp extends StatelessWidget {
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
             ),
-            home: auth.isAuthenticated
-                ? (auth.currentUser?.role == 'client'
-                    ? const ClientHomeScreen()
-                    : const HomeShell())
-                : const LoginScreen(),
+            home: !_hasShownSplash
+                ? AnimatedSplashScreen(
+                    onFinished: () {
+                      if (mounted) {
+                        setState(() => _hasShownSplash = true);
+                      }
+                    },
+                  )
+                : (auth.isAuthenticated
+                    ? (auth.currentUser?.role == 'client'
+                        ? const ClientHomeScreen()
+                        : const HomeShell())
+                    : const LoginScreen()),
           );
         },
       ),
