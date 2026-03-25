@@ -84,6 +84,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
       final auth = Provider.of<AuthProvider>(context, listen: false);
       final isAdmin = auth.currentUser?.role == 'admin';
       final isStaff = auth.currentUser?.role == 'staff';
+      
+      // Get all orders to count total orders properly
+      final allResp = await ApiClient.get('/orders');
+      int totalCount = 0;
+      if (allResp is Map<String, dynamic> && allResp['data'] is List) {
+        totalCount = (allResp['data'] as List).length;
+      } else if (allResp is List) {
+        totalCount = allResp.length;
+      }
+
       final resp = await ApiClient.get(isAdmin ? '/orders/pending?limit=20' : '/orders?limit=20');
       List<dynamic> ordersList = [];
       if (resp is Map<String, dynamic>) {
@@ -103,7 +113,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ordersList = ordersList.take(5).toList();
       }
       if (!mounted) return;
-      setState(() => _recentOrders = ordersList);
+      setState(() {
+        _recentOrders = ordersList;
+        _totalOrderCount = totalCount;
+      });
     } catch (e) {
       debugPrint('Error loading orders: $e');
     }
@@ -194,7 +207,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           '$_totalProductCount', 'Products'),
                       const SizedBox(width: 12),
                       _statChip(Icons.receipt_long_rounded,
-                          '${_recentOrders.length}', 'Orders'),
+                          '$_totalOrderCount', 'Orders'),
                     ],
                   ),
                 ],

@@ -6,7 +6,8 @@ import '../auth/auth_provider.dart';
 import '../services/socket_service.dart';
 
 class ClientMyOrdersScreen extends StatefulWidget {
-  const ClientMyOrdersScreen({super.key});
+  final String? expandOrderId;
+  const ClientMyOrdersScreen({super.key, this.expandOrderId});
 
   @override
   State<ClientMyOrdersScreen> createState() => _ClientMyOrdersScreenState();
@@ -34,6 +35,19 @@ class _ClientMyOrdersScreenState extends State<ClientMyOrdersScreen> {
   }
 
   @override
+  void didUpdateWidget(ClientMyOrdersScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.expandOrderId != oldWidget.expandOrderId && widget.expandOrderId != null) {
+      final idx = _orders.indexWhere((o) => o['_id']?.toString() == widget.expandOrderId);
+      if (idx != -1) {
+        setState(() {
+          _expanded.add(idx);
+        });
+      }
+    }
+  }
+
+  @override
   void dispose() {
     try {
       SocketService().off('order:created');
@@ -58,7 +72,13 @@ class _ClientMyOrdersScreenState extends State<ClientMyOrdersScreen> {
         orders = resp;
       }
       if (!mounted) return;
-      setState(() => _orders = orders);
+      setState(() {
+        _orders = orders;
+        if (widget.expandOrderId != null) {
+          final idx = _orders.indexWhere((o) => o['_id']?.toString() == widget.expandOrderId);
+          if (idx != -1) _expanded.add(idx);
+        }
+      });
     } catch (e) {
       if (!mounted) return;
       setState(() => _error = e.toString());

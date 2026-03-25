@@ -64,7 +64,7 @@ class _ClientOrderPlacementScreenState extends State<ClientOrderPlacementScreen>
       await ApiClient.post('/orders', {
         'items': cart.items,
         'paymentMethod': paymentMethod,
-        'totalPrice': cart.totalPrice,
+        'totalPrice': double.parse(cart.totalPrice.toStringAsFixed(2)),
       });
 
       cart.clear();
@@ -109,12 +109,27 @@ class _ClientOrderPlacementScreenState extends State<ClientOrderPlacementScreen>
                     return Card(
                       child: ListTile(
                         title: Text(item['vaccineName']),
-                        subtitle: Text(
-                          "Qty: ${item['quantity']}  •  ₹${item['sellingPrice']}",
-                        ),
-                        trailing: IconButton(
-                          icon: const Icon(Icons.delete),
-                          onPressed: () => cart.removeItem(i),
+                        subtitle: Text("₹${item['sellingPrice']} each"),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.remove_circle_outline, color: Color(0xFFEF233C)),
+                              onPressed: () => cart.updateQuantity(i, item['quantity'] - 1),
+                            ),
+                            Text(
+                              '${item['quantity']}',
+                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.add_circle_outline, color: Color(0xFF06D6A0)),
+                              onPressed: () => cart.updateQuantity(i, item['quantity'] + 1),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.delete_outline, color: Colors.grey),
+                              onPressed: () => cart.removeItem(i),
+                            ),
+                          ],
                         ),
                       ),
                     );

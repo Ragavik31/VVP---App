@@ -15,6 +15,7 @@ class ClientHomeScreen extends StatefulWidget {
 
 class _ClientHomeScreenState extends State<ClientHomeScreen> {
   int _index = 0;
+  String? _expandOrderId;
 
   void _goToProducts() {
     setState(() => _index = 1);
@@ -25,10 +26,18 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
   @override
   Widget build(BuildContext context) {
     final pages = [
-      ClientDashboardScreen(onPlaceOrder: _goToProducts),
+      ClientDashboardScreen(
+        onPlaceOrder: _goToProducts,
+        onGoToOrder: (orderId) {
+          setState(() {
+            _index = 3;
+            _expandOrderId = orderId;
+          });
+        },
+      ),
       const VaccineListScreen(),
       ClientOrderPlacementScreen(onOrderPlaced: () => setState(() => _index = 3)),
-      const ClientMyOrdersScreen(),
+      ClientMyOrdersScreen(expandOrderId: _expandOrderId),
     ];
 
     return Scaffold(

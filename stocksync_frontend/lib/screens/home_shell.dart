@@ -90,9 +90,9 @@ class _HomeShellState extends State<HomeShell> {
           ElevatedButton(
             onPressed: () async {
               final phone = phoneController.text.trim();
-              if (phone.isEmpty) {
+              if (phone.isEmpty || !RegExp(r'^\d{10}$').hasMatch(phone)) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Please enter a phone number'), backgroundColor: Colors.red),
+                  const SnackBar(content: Text('Please enter exactly 10 digits'), backgroundColor: Colors.red),
                 );
                 return;
               }

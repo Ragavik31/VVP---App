@@ -5,7 +5,8 @@ import '../auth/auth_provider.dart';
 
 class ClientDashboardScreen extends StatefulWidget {
   final VoidCallback? onPlaceOrder;
-  const ClientDashboardScreen({super.key, this.onPlaceOrder});
+  final Function(String)? onGoToOrder;
+  const ClientDashboardScreen({super.key, this.onPlaceOrder, this.onGoToOrder});
 
   @override
   State<ClientDashboardScreen> createState() => _ClientDashboardScreenState();
@@ -474,15 +475,21 @@ class _ClientDashboardScreenState extends State<ClientDashboardScreen> {
                 } catch (_) {}
               }
 
-              return Container(
-                margin: const EdgeInsets.only(bottom: 8),
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: isOverdue
-                      ? const Color(0xFFFFE8EC)
-                      : const Color(0xFFFFF8E1),
-                  borderRadius: BorderRadius.circular(10),
-                ),
+              return GestureDetector(
+                onTap: () {
+                  if (widget.onGoToOrder != null) {
+                    widget.onGoToOrder!(o['_id'].toString());
+                  }
+                },
+                child: Container(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: isOverdue
+                        ? const Color(0xFFFFE8EC)
+                        : const Color(0xFFFFF8E1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
                 child: Row(
                   children: [
                     Icon(

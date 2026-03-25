@@ -53,8 +53,10 @@ const createOrder = async (req, res) => {
     let totalPrice = 0;
     for (const item of items) {
       totalQuantity += item.quantity;
+      item.itemTotal = parseFloat(Number(item.itemTotal).toFixed(2));
       totalPrice += item.itemTotal;
     }
+    totalPrice = parseFloat(Number(totalPrice).toFixed(2));
 
     const paymentMethod = req.body.paymentMethod || 'cash';
     const paymentDueDate = paymentMethod === 'cash'
