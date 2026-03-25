@@ -534,7 +534,8 @@ class _ClientDashboardScreenState extends State<ClientDashboardScreen> {
                     ),
                   ],
                 ),
-              );
+              ),
+            );
             }),
           ],
         ),

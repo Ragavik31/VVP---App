@@ -16,6 +16,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   List<dynamic> _recentVaccines = [];
   List<dynamic> _recentOrders = [];
   int _totalProductCount = 0;
+  int _totalOrderCount = 0;
   String? _error;
   final Set<int> _expandedOrders = {};
 
